@@ -1,0 +1,10 @@
+[package]
+name = "operating-system-project"
+version = "0.1.0"
+authors = ["Juuso <jutuon@outlook.com>"]
+edition = "2018"
+
+[dependencies]
+vga-framebuffer = "0.7.4"
+volatile = "0.2.5"
+x86 = "0.12.0"
