@@ -20,11 +20,7 @@ extern "C" fn kernel_main() -> ! {
 
     writeln!(terminal, "Hello world");
 
-    for _ in 0..10 {
-        writeln!(terminal, "Hello World");
-    }
-
-    panic!("Hello panic");
+    check_cpu_features(&mut terminal).expect("error: CPU is not compatible");
 
     loop {
         unsafe {
@@ -32,6 +28,57 @@ extern "C" fn kernel_main() -> ! {
         }
     }
 }
+
+fn check_cpu_features(log: &mut impl Write) -> Result<(), ()> {
+    use x86::cpuid::CpuId;
+
+    let cpu_id = CpuId::new();
+
+    match cpu_id.get_vendor_info() {
+        Some(vendor_info) => {
+            match vendor_info.as_string() {
+                "AuthenticAMD" | "GenuineIntel" => (),
+                unknown_vendor => {
+                    writeln!(log, "error: unknown CPU vendor '{}'", unknown_vendor);
+                    return Err(());
+                }
+            }
+        },
+        None => {
+            writeln!(log, "error: couldn't query CPU vendor");
+            return Err(());
+        }
+    }
+
+    match cpu_id.get_extended_function_info() {
+        Some(features) => {
+            if !features.has_execute_disable() {
+                writeln!(log, "error: CPU doesn't support NX-bit");
+                return Err(())
+            }
+        },
+        None => {
+            writeln!(log, "error: CPU extended function info query failed");
+            return Err(())
+        }
+    }
+
+    match cpu_id.get_feature_info() {
+        Some(features) => {
+            if !features.has_pae() {
+                writeln!(log, "error: CPU doesn't support PAE");
+                Err(())
+            } else {
+                Ok(())
+            }
+        },
+        None => {
+            writeln!(log, "error: CPU feature query failed");
+            Err(())
+        }
+    }
+}
+
 
 use core::panic::PanicInfo;
 
