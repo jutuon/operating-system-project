@@ -23,6 +23,11 @@ extern "C" fn kernel_main() -> ! {
 
     check_cpu_features(&mut terminal).expect("error: CPU is not compatible");
 
+    enable_cpu_features();
+
+    writeln!(terminal, "PAE and NX-bit enabled");
+
+
     loop {
         unsafe {
             x86::halt()
@@ -80,6 +85,18 @@ fn check_cpu_features(log: &mut impl Write) -> Result<(), ()> {
     }
 }
 
+
+fn enable_cpu_features() {
+    use x86::controlregs::{Cr4, cr4_write};
+    use x86::msr::{wrmsr, IA32_EFER};
+
+    unsafe {
+        cr4_write(Cr4::CR4_ENABLE_PAE);
+
+        wrmsr(IA32_EFER, 1 << 11); // bit 11 enables NX-bit support
+    }
+
+}
 
 use core::panic::PanicInfo;
 
