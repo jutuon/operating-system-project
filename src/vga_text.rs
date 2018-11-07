@@ -1,7 +1,6 @@
 
 use core::sync::atomic::{AtomicBool, Ordering};
 use core::slice;
-use core::ops;
 
 use vga_framebuffer::Colour;
 

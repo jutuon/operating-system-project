@@ -10,7 +10,6 @@ pub mod terminal;
 
 use self::terminal::{Terminal};
 
-use core::ptr;
 use core::fmt::Write;
 
 #[no_mangle]
@@ -87,7 +86,7 @@ use core::panic::PanicInfo;
 /// This function is called on panic.
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
-    let mut text_buffer = unsafe {
+    let text_buffer = unsafe {
         vga_text::VgaTextBuffer::new_unsafe()
     };
 
