@@ -16,6 +16,8 @@ use core::fmt::Write;
 #[no_mangle]
 extern "C" fn kernel_main() -> ! {
     let mut vga_handle = vga_text::VgaTextBuffer::new().unwrap();
+    vga_handle.clear();
+
     let mut terminal = Terminal::new(vga_handle);
 
     writeln!(terminal, "Hello world");
