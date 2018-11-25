@@ -7,8 +7,10 @@ global_asm!(include_str!("assembly.s"));
 
 pub mod vga_text;
 pub mod terminal;
+pub mod gdt;
 
 use self::terminal::{Terminal};
+use self::gdt::GDT;
 
 use core::fmt::Write;
 
@@ -25,9 +27,11 @@ extern "C" fn kernel_main() -> ! {
 
     enable_cpu_features();
 
-    writeln!(terminal, "PAE and NX-bit enabled");
+    writeln!(terminal, "PAE and NX-bit enabled.");
 
+    GDT::load_gdt();
 
+    writeln!(terminal, "GDT loaded.");
     loop {
         unsafe {
             x86::halt()
