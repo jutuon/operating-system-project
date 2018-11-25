@@ -8,9 +8,11 @@ global_asm!(include_str!("assembly.s"));
 pub mod vga_text;
 pub mod terminal;
 pub mod gdt;
+pub mod idt;
 
 use self::terminal::{Terminal};
 use self::gdt::GDT;
+use self::idt::IDT;
 
 use core::fmt::Write;
 
@@ -32,6 +34,14 @@ extern "C" fn kernel_main() -> ! {
     GDT::load_gdt();
 
     writeln!(terminal, "GDT loaded.");
+
+    IDT::load_idt();
+
+    writeln!(terminal, "IDT loaded.");
+
+    IDT::enable_interrupts();
+
+    writeln!(terminal, "Interrupts enabled.");
     loop {
         unsafe {
             x86::halt()

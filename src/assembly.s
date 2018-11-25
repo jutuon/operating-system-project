@@ -22,3 +22,22 @@ _start:
 stack_end:
     .space 1024*1024 # 1 MiB
 stack_start:
+
+
+# Interrupt handlers
+.text
+
+.global interrupt_hander
+.extern rust_interrupt_handler
+
+interrupt_hander:
+    call rust_interrupt_handler
+    # TODO: pop error codes if they exists (specific interrupt numbers)
+    iret
+
+
+
+
+
+
+
