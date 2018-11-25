@@ -4,7 +4,7 @@ run: build run-cmd
 run-release: build-release run-cmd
 
 run-cmd:
-    qemu-system-i386 -m 32M -boot order=d -cdrom build/grub.iso -cpu n270
+    qemu-system-i386 -m 32M -boot order=d -cdrom build/grub.iso -cpu n270 -d int,cpu_reset -no-reboot
 
 build: build-debug-binary create-grub-iso
 build-release: build-release-binary create-grub-iso-release
