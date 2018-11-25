@@ -1,8 +1,9 @@
 [package]
 name = "operating-system-project"
 version = "0.1.0"
-authors = ["Juuso <jutuon@outlook.com>"]
+authors = ["Juuso Tuononen <jutuon@outlook.com>"]
 edition = "2018"
+publish = false
 
 [dependencies]
 vga-framebuffer = "0.7.4"
