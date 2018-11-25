@@ -91,13 +91,13 @@ fn check_cpu_features(log: &mut impl Write) -> Result<(), ()> {
 
 
 fn enable_cpu_features() {
-    use x86::controlregs::{Cr4, cr4_write};
-    use x86::msr::{wrmsr, IA32_EFER};
+    use x86::controlregs::{Cr4, cr4_write, cr4};
+    use x86::msr::{wrmsr, IA32_EFER, rdmsr};
 
     unsafe {
-        cr4_write(Cr4::CR4_ENABLE_PAE);
+        cr4_write(Cr4::CR4_ENABLE_PAE | cr4());
 
-        wrmsr(IA32_EFER, 1 << 11); // bit 11 enables NX-bit support
+        wrmsr(IA32_EFER, (1 << 11) | rdmsr(IA32_EFER)); // bit 11 enables NX-bit support
     }
 
 }
