@@ -19,6 +19,15 @@ version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
+name = "operating-system-project"
+version = "0.1.0"
+dependencies = [
+ "vga-framebuffer 0.7.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "volatile 0.2.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "x86 0.12.0 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "raw-cpuid"
 version = "6.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -48,15 +57,6 @@ dependencies = [
 name = "semver-parser"
 version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-
-[[package]]
-name = "operating-system-project"
-version = "0.1.0"
-dependencies = [
- "vga-framebuffer 0.7.4 (registry+https://github.com/rust-lang/crates.io-index)",
- "volatile 0.2.5 (registry+https://github.com/rust-lang/crates.io-index)",
- "x86 0.12.0 (registry+https://github.com/rust-lang/crates.io-index)",
-]
 
 [[package]]
 name = "vga-framebuffer"
