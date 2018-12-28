@@ -9,3 +9,4 @@ publish = false
 vga-framebuffer = "0.7.4"
 volatile = "0.2.5"
 x86 = "0.12.0"
+seq-macro = "0.1.2"
