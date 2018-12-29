@@ -89,6 +89,103 @@ impl IDT {
     }
 }
 
+#[derive(Debug)]
+pub enum Exception {
+    DivideByZero = 0,
+    Debug,
+    NonMaskableInterrupt,
+    Breakpoint,
+    Overflow,
+    BoundRange,
+    InvalidOpcode,
+    DeviceNotAvailable,
+    DoubleFault,
+    CoprosessorSegmentOverrun,
+    InvalidTSS,
+    SegementNotPresent,
+    Stack,
+    GeneralProtection,
+    PageFault = 14,
+    X87FloatingPoint = 16,
+    AlignmentCheck,
+    MachineCheck,
+    SMIDFloatingPoint = 19,
+    VMMCommunication = 29,
+    Security,
+}
+
+#[derive(Debug)]
+struct UnknownInterrupt;
+
+impl Exception {
+    fn from_interrupt_number(interrupt_number: u32) -> Result<Self, UnknownInterrupt> {
+        use self::Exception::*;
+        let exception = match interrupt_number {
+            0 => DivideByZero,
+            1 => Debug,
+            2 => NonMaskableInterrupt,
+            3 => Breakpoint,
+            4 => Overflow,
+            5 => BoundRange,
+            6 => InvalidOpcode,
+            7 => DeviceNotAvailable,
+            8 => DoubleFault,
+            9 => CoprosessorSegmentOverrun,
+            10 => InvalidTSS,
+            11 => SegementNotPresent,
+            12 => Stack,
+            13 => GeneralProtection,
+            14 => PageFault,
+            16 => X87FloatingPoint,
+            17 => AlignmentCheck,
+            18 => MachineCheck,
+            19 => SMIDFloatingPoint,
+            29 => VMMCommunication,
+            30 => Security,
+            _ => return Err(UnknownInterrupt),
+        };
+        Ok(exception)
+    }
+}
+
+#[derive(Debug)]
+pub enum HardwareInterrupt {
+    Timer,
+    Keyboard,
+    COM2,
+    COM1,
+    LPT2,
+    FloppyDisk,
+    LPT1,
+    RealTimeClock,
+    Mouse,
+    FPU,
+    PrimaryHardDisk,
+    SecondaryHardDisk,
+}
+
+impl HardwareInterrupt {
+    fn from_interrupt_number(interrupt_number: u32) -> Result<Self, UnknownInterrupt> {
+        use self::HardwareInterrupt::*;
+        let interrupt = match interrupt_number {
+            32 => Timer,
+            33 => Keyboard,
+            34 => COM2,
+            35 => COM1,
+            36 => LPT2,
+            37 => FloppyDisk,
+            38 => LPT1,
+            39 => RealTimeClock,
+            40 => Mouse,
+            42 => FPU,
+            43 => PrimaryHardDisk,
+            44 => SecondaryHardDisk,
+            _ => return Err(UnknownInterrupt),
+        };
+        Ok(interrupt)
+    }
+}
+
 #[no_mangle]
 extern "C" fn rust_interrupt_handler(interrupt_number: u32) {
     use core::fmt::Write;
@@ -99,15 +196,21 @@ extern "C" fn rust_interrupt_handler(interrupt_number: u32) {
 
     let mut terminal = crate::terminal::Terminal::new(text_buffer);
 
-    writeln!(terminal, "Interrupt {}", interrupt_number);
+    let exception = Exception::from_interrupt_number(interrupt_number);
+    if exception.is_ok() {
+        writeln!(terminal, "Interrupt {:?}, number: {}", exception, interrupt_number);
+    } else {
+        let hardware_interrupt = HardwareInterrupt::from_interrupt_number(interrupt_number);
+        writeln!(terminal, "Interrupt {:?}, number: {}", hardware_interrupt, interrupt_number);
+    }
 }
-
 
 #[no_mangle]
 extern "C" fn rust_interrupt_handler_with_error(
     interrupt_number: u32,
     error_code: u32
 ) {
-    panic!("Interrupt {}, error: {:#08x}",
-        interrupt_number, error_code);
+    let exception = Exception::from_interrupt_number(interrupt_number);
+    panic!("Interrupt {:?}, number: {}, error: {:#08x}",
+        exception, interrupt_number, error_code);
 }
