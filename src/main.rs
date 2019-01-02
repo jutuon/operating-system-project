@@ -12,7 +12,7 @@ pub mod idt;
 
 use self::terminal::{Terminal};
 use self::gdt::GDT;
-use self::idt::IDT;
+use self::idt::IDTHandler;
 
 use core::fmt::Write;
 
@@ -35,11 +35,11 @@ extern "C" fn kernel_main() -> ! {
 
     writeln!(terminal, "GDT loaded.");
 
-    IDT::load_idt();
+    let mut idt_handler = IDTHandler::new();
 
     writeln!(terminal, "IDT loaded.");
 
-    IDT::enable_interrupts();
+    idt_handler.enable_interrupts();
 
     writeln!(terminal, "Interrupts enabled.");
     loop {

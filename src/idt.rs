@@ -64,8 +64,30 @@ static mut IDT_DATA: IDT = IDT {
     entries: [Descriptor::NULL; 256],
 };
 
-impl IDT {
-    pub fn load_idt() {
+pub struct PicPortIO;
+
+unsafe impl pic8259::PortIO for PicPortIO {
+    fn read(&self, port: u16) -> u8 {
+        unsafe { x86::io::inb(port) }
+    }
+
+    fn write(&mut self, port: u16, data: u8) {
+        unsafe { x86::io::outb(port, data); }
+    }
+}
+
+pub struct IDTHandler {
+    pic: pic8259::PicAEOI<PicPortIO>,
+}
+
+const MASTER_PIC_INTERRUPT_OFFSET: u8 = 32;
+const SLAVE_PIC_INTERRUPT_OFFSET: u8 = MASTER_PIC_INTERRUPT_OFFSET + 8;
+
+const MASTER_PIC_SPURIOUS_INTERRUPT: u8 = MASTER_PIC_INTERRUPT_OFFSET + 7;
+const SLAVE_PIC_SPURIOUS_INTERRUPT: u8 = SLAVE_PIC_INTERRUPT_OFFSET + 7;
+
+impl IDTHandler {
+    pub fn new() -> Self {
         unsafe {
             for (i, entry) in IDT_DATA.entries.iter_mut().enumerate() {
                 let function_position = INTERRUPT_HANDLERS[i] as u32;
@@ -80,14 +102,41 @@ impl IDT {
 
             lidt(&idt_pointer);
         }
+
+        use pic8259::*;
+
+        let mut pic = pic8259::PicInit::start_init(PicPortIO, InterruptTriggerMode::EdgeTriggered)
+            .interrupt_offsets(MASTER_PIC_INTERRUPT_OFFSET, SLAVE_PIC_INTERRUPT_OFFSET)
+            .automatic_end_of_interrupt();
+
+        // Dedicate last interrupt line for spurious interrupts.
+        const LAST_IRQ_LINE: u8 = 0b1000_0000;
+        const TIMER_IRQ_LINE: u8 = 0b0000_0001;
+        pic.set_master_mask(LAST_IRQ_LINE | TIMER_IRQ_LINE);
+        pic.set_slave_mask(LAST_IRQ_LINE);
+
+        IDTHandler {
+            pic
+        }
     }
 
-    pub fn enable_interrupts() {
+    pub fn enable_interrupts(&mut self) {
         unsafe {
             x86::irq::enable();
         }
     }
+
+    pub fn master_pic_spurious_interrupts_count() -> usize {
+        unsafe { MASTER_PIC_SPURIOUS_INTERRUPT_COUNT }
+    }
+    pub fn slave_pic_spurious_interrupts_count() -> usize {
+        unsafe { SLAVE_PIC_SPURIOUS_INTERRUPT_COUNT }
+    }
 }
+
+static mut MASTER_PIC_SPURIOUS_INTERRUPT_COUNT: usize = 0;
+static mut SLAVE_PIC_SPURIOUS_INTERRUPT_COUNT: usize = 0;
+
 
 #[derive(Debug)]
 pub enum Exception {
@@ -197,11 +246,24 @@ extern "C" fn rust_interrupt_handler(interrupt_number: u32) {
     let mut terminal = crate::terminal::Terminal::new(text_buffer);
 
     let exception = Exception::from_interrupt_number(interrupt_number);
+
     if exception.is_ok() {
         writeln!(terminal, "Interrupt {:?}, number: {}", exception, interrupt_number);
     } else {
         let hardware_interrupt = HardwareInterrupt::from_interrupt_number(interrupt_number);
         writeln!(terminal, "Interrupt {:?}, number: {}", hardware_interrupt, interrupt_number);
+
+        if interrupt_number == MASTER_PIC_SPURIOUS_INTERRUPT as u32 {
+            unsafe {
+                MASTER_PIC_SPURIOUS_INTERRUPT_COUNT += 1;
+            }
+        }
+
+        if interrupt_number == SLAVE_PIC_SPURIOUS_INTERRUPT as u32 {
+            unsafe {
+                SLAVE_PIC_SPURIOUS_INTERRUPT_COUNT += 1;
+            }
+        }
     }
 }
 

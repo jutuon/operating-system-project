@@ -22,11 +22,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 name = "operating-system-project"
 version = "0.1.0"
 dependencies = [
+ "pic8259 0.1.0 (git+https://github.com/jutuon/pic8259)",
  "seq-macro 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "vga-framebuffer 0.7.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "volatile 0.2.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "x86 0.12.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
+
+[[package]]
+name = "pic8259"
+version = "0.1.0"
+source = "git+https://github.com/jutuon/pic8259#551ed252aaad6f4b32e50cfeed4b1791e25ae178"
 
 [[package]]
 name = "raw-cpuid"
@@ -92,6 +98,7 @@ dependencies = [
 "checksum cc 1.0.25 (registry+https://github.com/rust-lang/crates.io-index)" = "f159dfd43363c4d08055a07703eb7a3406b0dac4d0584d96965a3262db3c9d16"
 "checksum console-traits 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)" = "f711b3d1d5c3f7ae7d6428901c0f3e5d5f5c800fcfac86bf0252e96373a2cec6"
 "checksum const-ft 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "990f5aebce907dc6f5e50e19b05e1095994b855a1ddd2aba8d4f2ec6802e59fd"
+"checksum pic8259 0.1.0 (git+https://github.com/jutuon/pic8259)" = "<none>"
 "checksum raw-cpuid 6.0.0 (registry+https://github.com/rust-lang/crates.io-index)" = "41219962ecab392f1e68db9e7ebd972800d4045a128cc23462b384e8c312cde1"
 "checksum rustc_version 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)" = "138e3e0acb6c9fb258b19b67cb8abd63c00679d2851805ea151465464fe9030a"
 "checksum semver 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)" = "1d7eb9ef2c18661902cc47e535f9bc51b78acd254da71d375c2f6720d9a40403"
