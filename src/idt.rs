@@ -2,6 +2,8 @@
 use x86::dtables::*;
 use x86::segmentation::*;
 
+use arraydeque::{ArrayDeque, Saturating};
+
 use seq_macro::seq;
 
 seq!(N in 18..=255 {
@@ -86,6 +88,10 @@ const SLAVE_PIC_INTERRUPT_OFFSET: u8 = MASTER_PIC_INTERRUPT_OFFSET + 8;
 const MASTER_PIC_SPURIOUS_INTERRUPT: u8 = MASTER_PIC_INTERRUPT_OFFSET + 7;
 const SLAVE_PIC_SPURIOUS_INTERRUPT: u8 = SLAVE_PIC_INTERRUPT_OFFSET + 7;
 
+static mut RECEIVED_HARDWARE_INTERRUPT_BITFLAGS: u32 = 0;
+static mut INTERRUPT_DEQUE: core::mem::MaybeUninit<ArrayDeque<[HardwareInterrupt; 32], Saturating>> = unsafe { core::mem::MaybeUninit::uninitialized() };
+
+
 impl IDTHandler {
     pub fn new() -> Self {
         unsafe {
@@ -101,6 +107,10 @@ impl IDTHandler {
             let idt_pointer = DescriptorTablePointer::new(&IDT_DATA);
 
             lidt(&idt_pointer);
+        }
+
+        unsafe {
+            INTERRUPT_DEQUE.set(ArrayDeque::new());
         }
 
         use pic8259::*;
@@ -123,6 +133,16 @@ impl IDTHandler {
     pub fn enable_interrupts(&mut self) {
         unsafe {
             x86::irq::enable();
+        }
+    }
+
+    pub fn handle_interrupt(&mut self) -> Option<HardwareInterrupt> {
+        unsafe {
+            let interrupt = INTERRUPT_DEQUE.get_mut().pop_front();
+            if let Some(hardware_interrupt) = &interrupt {
+                RECEIVED_HARDWARE_INTERRUPT_BITFLAGS &= !(1 << *hardware_interrupt as u8);
+            }
+            interrupt
         }
     }
 
@@ -197,7 +217,8 @@ impl Exception {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
+#[repr(u8)]
 pub enum HardwareInterrupt {
     Timer,
     Keyboard,
@@ -248,18 +269,31 @@ extern "C" fn rust_interrupt_handler(interrupt_number: u32) {
     let exception = Exception::from_interrupt_number(interrupt_number);
 
     if exception.is_ok() {
-        writeln!(terminal, "Interrupt {:?}, number: {}", exception, interrupt_number);
+        panic!("Interrupt {:?}, number: {}", exception, interrupt_number);
     } else {
         let hardware_interrupt = HardwareInterrupt::from_interrupt_number(interrupt_number);
-        writeln!(terminal, "Interrupt {:?}, number: {}", hardware_interrupt, interrupt_number);
+
+        if let Ok(interrupt) = hardware_interrupt {
+            unsafe {
+                let flag = 1 << interrupt as u8;
+                if flag & RECEIVED_HARDWARE_INTERRUPT_BITFLAGS == 0 {
+                    INTERRUPT_DEQUE.get_mut().push_back(interrupt).unwrap();
+                    RECEIVED_HARDWARE_INTERRUPT_BITFLAGS |= flag;
+                }
+            }
+        }
 
         if interrupt_number == MASTER_PIC_SPURIOUS_INTERRUPT as u32 {
+            writeln!(terminal, "Spurious interrupt form master PIC");
+
             unsafe {
                 MASTER_PIC_SPURIOUS_INTERRUPT_COUNT += 1;
             }
         }
 
         if interrupt_number == SLAVE_PIC_SPURIOUS_INTERRUPT as u32 {
+            writeln!(terminal, "Spurious interrupt form slave PIC");
+
             unsafe {
                 SLAVE_PIC_SPURIOUS_INTERRUPT_COUNT += 1;
             }

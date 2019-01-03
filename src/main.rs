@@ -1,4 +1,4 @@
-#![feature(global_asm)]
+#![feature(global_asm, maybe_uninit)]
 
 #![no_std]
 #![no_main]
@@ -42,8 +42,13 @@ extern "C" fn kernel_main() -> ! {
     idt_handler.enable_interrupts();
 
     writeln!(terminal, "Interrupts enabled.");
+
     loop {
         unsafe {
+            while let Some(hardware_interrupt) = idt_handler.handle_interrupt() {
+                writeln!(terminal, "HardwareInterrupt: {:?}", hardware_interrupt);
+            }
+
             x86::halt()
         }
     }
