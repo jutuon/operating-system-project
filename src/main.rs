@@ -1,4 +1,5 @@
 #![feature(global_asm, maybe_uninit)]
+#![feature(const_fn)]
 
 #![no_std]
 #![no_main]
@@ -7,6 +8,7 @@ global_asm!(include_str!("assembly.s"));
 
 pub mod vga_text;
 pub mod terminal;
+pub mod page_table;
 pub mod gdt;
 pub mod idt;
 
@@ -42,6 +44,17 @@ extern "C" fn kernel_main() -> ! {
     idt_handler.enable_interrupts();
 
     writeln!(terminal, "Interrupts enabled.");
+
+    let mut page_table = page_table::GlobalPageTable::new().expect("Page table handle loading failed");
+    page_table.load_identity_map();
+
+    unsafe {
+        let cr3_data = page_table::pae_cr3_format(page_table.level3_start_address(), false, false);
+        x86::controlregs::cr3_write(cr3_data as u64);
+        x86::controlregs::cr0_write(x86::controlregs::Cr0::CR0_ENABLE_PAGING | x86::controlregs::cr0());
+    }
+
+    writeln!(terminal, "Paging enabled.");
 
     loop {
         unsafe {
