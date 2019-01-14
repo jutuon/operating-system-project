@@ -138,10 +138,12 @@ impl IDTHandler {
 
     pub fn handle_interrupt(&mut self) -> Option<HardwareInterrupt> {
         unsafe {
+            x86::irq::disable();
             let interrupt = INTERRUPT_DEQUE.get_mut().pop_front();
             if let Some(hardware_interrupt) = &interrupt {
                 RECEIVED_HARDWARE_INTERRUPT_BITFLAGS &= !(1 << *hardware_interrupt as u8);
             }
+            x86::irq::enable();
             interrupt
         }
     }
