@@ -11,6 +11,7 @@ pub mod terminal;
 pub mod page_table;
 pub mod gdt;
 pub mod idt;
+pub mod input;
 
 use self::terminal::{Terminal};
 use self::gdt::GDT;
@@ -56,10 +57,23 @@ extern "C" fn kernel_main() -> ! {
 
     writeln!(terminal, "Paging enabled.");
 
+    let mut input = self::input::Input::new();
+
     loop {
         unsafe {
             while let Some(hardware_interrupt) = idt_handler.handle_interrupt() {
-                writeln!(terminal, "HardwareInterrupt: {:?}", hardware_interrupt);
+                use self::idt::HardwareInterrupt;
+                match hardware_interrupt {
+                    HardwareInterrupt::Keyboard => {
+                        let key = input.read_key();
+                        if let Some(c) = key {
+                            terminal.write_char(c);
+                        }
+                    },
+                    hardware_interrupt => {
+                        writeln!(terminal, "HardwareInterrupt: {:?}", hardware_interrupt);
+                    }
+                }
             }
 
             x86::halt()
