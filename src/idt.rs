@@ -79,7 +79,7 @@ impl pc_at_pic8259a::PortIO for PicPortIO {
 }
 
 pub struct IDTHandler {
-    pic: pc_at_pic8259a::PicAEOI<PicPortIO>,
+    _pic: pc_at_pic8259a::PicAEOI<PicPortIO>,
 }
 
 const MASTER_PIC_INTERRUPT_OFFSET: u8 = 32;
@@ -89,7 +89,7 @@ const MASTER_PIC_SPURIOUS_INTERRUPT: u8 = MASTER_PIC_INTERRUPT_OFFSET + 7;
 const SLAVE_PIC_SPURIOUS_INTERRUPT: u8 = SLAVE_PIC_INTERRUPT_OFFSET + 7;
 
 static mut RECEIVED_HARDWARE_INTERRUPT_BITFLAGS: u32 = 0;
-static mut INTERRUPT_DEQUE: core::mem::MaybeUninit<ArrayDeque<[HardwareInterrupt; 32], Saturating>> = unsafe { core::mem::MaybeUninit::uninitialized() };
+static mut INTERRUPT_DEQUE: core::mem::MaybeUninit<ArrayDeque<[HardwareInterrupt; 32], Saturating>> = core::mem::MaybeUninit::uninitialized();
 
 
 impl IDTHandler {
@@ -126,7 +126,7 @@ impl IDTHandler {
         pic.set_slave_mask(LAST_IRQ_LINE);
 
         IDTHandler {
-            pic
+            _pic: pic
         }
     }
 
@@ -286,7 +286,7 @@ extern "C" fn rust_interrupt_handler(interrupt_number: u32) {
         }
 
         if interrupt_number == MASTER_PIC_SPURIOUS_INTERRUPT as u32 {
-            writeln!(terminal, "Spurious interrupt form master PIC");
+            let _ = writeln!(terminal, "Spurious interrupt form master PIC");
 
             unsafe {
                 MASTER_PIC_SPURIOUS_INTERRUPT_COUNT += 1;
@@ -294,7 +294,7 @@ extern "C" fn rust_interrupt_handler(interrupt_number: u32) {
         }
 
         if interrupt_number == SLAVE_PIC_SPURIOUS_INTERRUPT as u32 {
-            writeln!(terminal, "Spurious interrupt form slave PIC");
+            let _ = writeln!(terminal, "Spurious interrupt form slave PIC");
 
             unsafe {
                 SLAVE_PIC_SPURIOUS_INTERRUPT_COUNT += 1;

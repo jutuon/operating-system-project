@@ -1,11 +1,6 @@
 
 use bitflags::bitflags;
 
-const PAGE_TABLE_ENTRIES: usize = 512;
-const PAGE_TABLE_SIZE: usize = PAGE_TABLE_ENTRIES * 8;
-
-const PAGE_AREA_SIZE: usize = 1024*1024*2;
-
 const GIGA_BYTE: u64 = MEGA_BYTE*1024;
 const MEGA_BYTE: u64 = 1024*1024;
 
@@ -14,7 +9,7 @@ use core::sync::atomic::{AtomicBool, Ordering};
 static PAGE_TABLE_HANDLE_CREATED: AtomicBool = AtomicBool::new(false);
 
 #[repr(align(4096), C)] // 1024*4 = PAGE_TABLE_SIZE
-struct PageTableData {
+pub struct PageTableData {
     level3: [L3PageTableEntry; 512],
     level2_1: [L2PageTableEntry2MB; 512],
     level2_2: [L2PageTableEntry2MB; 512],
@@ -83,7 +78,7 @@ use core::marker::PhantomData;
 
 #[derive(Copy, Clone)]
 #[repr(transparent)]
-struct GenericPageTableEntry<F: EntryFlags, A: PhysicalAddressHandler>(u64, PhantomData<F>, PhantomData<A>);
+pub struct GenericPageTableEntry<F: EntryFlags, A: PhysicalAddressHandler>(u64, PhantomData<F>, PhantomData<A>);
 
 impl <F: EntryFlags, A: PhysicalAddressHandler> GenericPageTableEntry<F, A> {
     const fn zero() -> Self {
@@ -91,7 +86,7 @@ impl <F: EntryFlags, A: PhysicalAddressHandler> GenericPageTableEntry<F, A> {
     }
 }
 
-trait PhysicalAddressHandler {
+pub trait PhysicalAddressHandler {
     const MASK: u64;
     const MASK_STR: &'static str;
     const REQUIRED_FLAGS: u64;
@@ -108,7 +103,7 @@ trait PhysicalAddressHandler {
     }
 }
 
-trait EntryFlags: Sized + Copy + Clone + core::ops::Not<Output=Self> {
+pub trait EntryFlags: Sized + Copy + Clone + core::ops::Not<Output=Self> {
     fn all() -> Self;
     fn bits(&self) -> u64;
     fn from_bits_truncate(value: u64) -> Self;
@@ -116,31 +111,31 @@ trait EntryFlags: Sized + Copy + Clone + core::ops::Not<Output=Self> {
 
 impl <F: EntryFlags, A: PhysicalAddressHandler> GenericPageTableEntry<F, A> {
     fn new(address: u64, flags: F) -> Self {
-        let mut entry = A::to_entry_format(&address) | flags.bits();
+        let entry = A::to_entry_format(&address) | flags.bits();
         GenericPageTableEntry(entry, PhantomData, PhantomData)
     }
 
-    fn flags(&self) -> F {
+    pub fn flags(&self) -> F {
         F::from_bits_truncate(self.0)
     }
 
-    fn flags_mut(&mut self, flags: F) {
+    pub fn flags_mut(&mut self, flags: F) {
         let mask = !F::all();
         self.0 = (self.0 & mask.bits()) | flags.bits();
     }
 
-    fn address(&self) -> u64 {
+    pub fn address(&self) -> u64 {
         A::extract(&self.0)
     }
 
-    fn address_mut(&mut self, address: u64) {
+    pub fn address_mut(&mut self, address: u64) {
         let mask = !A::to_entry_format(&u64::max_value());
         self.0 = (self.0 & mask) | A::to_entry_format(&address);
     }
 }
 
 /// PDPE entry
-type L3PageTableEntry = GenericPageTableEntry<L3Flags, PhysicalAddressHandlerNormal>;
+pub type L3PageTableEntry = GenericPageTableEntry<L3Flags, PhysicalAddressHandlerNormal>;
 
 bitflags! {
     pub struct L3Flags: u64 {
@@ -158,9 +153,9 @@ impl EntryFlags for L3Flags {
 
 
 /// PDE entry
-type L2PageTableEntry = GenericPageTableEntry<L2Flags, PhysicalAddressHandlerNormal>;
+pub type L2PageTableEntry = GenericPageTableEntry<L2Flags, PhysicalAddressHandlerNormal>;
 
-type L2PageTableEntry2MB = GenericPageTableEntry<L2Flags2MB, PhysicalAddressHandler2MBytesPDE>;
+pub type L2PageTableEntry2MB = GenericPageTableEntry<L2Flags2MB, PhysicalAddressHandler2MBytesPDE>;
 
 bitflags! {
     pub struct L2Flags: u64 {
@@ -202,7 +197,7 @@ impl EntryFlags for L2Flags {
 }
 
 /// PTE entry
-type L1PageTableEntry = GenericPageTableEntry<L1Flags, PhysicalAddressHandlerNormal>;
+pub type L1PageTableEntry = GenericPageTableEntry<L1Flags, PhysicalAddressHandlerNormal>;
 
 
 bitflags! {
@@ -233,7 +228,7 @@ const PHYSICAL_ADDRESS_MASK_2MB_PDE_STR: &str = "(u64::max_value() << 21) >> 12"
 const PHYSICAL_ADDRESS_MASK_2MB_PDE: u64 = (u64::max_value() << 21) >> 12;
 
 #[derive(Copy, Clone)]
-struct PhysicalAddressHandlerNormal;
+pub struct PhysicalAddressHandlerNormal;
 
 impl PhysicalAddressHandler for PhysicalAddressHandlerNormal {
     const MASK: u64 = PHYSICAL_ADDRESS_MASK;
@@ -244,7 +239,7 @@ impl PhysicalAddressHandler for PhysicalAddressHandlerNormal {
 const ENABLE_2MB_PAGES: u64 = 1 << 7;
 
 #[derive(Copy, Clone)]
-struct PhysicalAddressHandler2MBytesPDE;
+pub struct PhysicalAddressHandler2MBytesPDE;
 
 impl PhysicalAddressHandler for PhysicalAddressHandler2MBytesPDE {
     const MASK: u64 = PHYSICAL_ADDRESS_MASK_2MB_PDE;

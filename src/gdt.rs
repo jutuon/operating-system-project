@@ -3,14 +3,14 @@ use x86::segmentation::*;
 use x86::dtables::*;
 
 pub struct GDT {
-    null: Descriptor,
+    _null: Descriptor,
     code: Descriptor,
     data: Descriptor,
 }
 
 #[used]
 static mut GDT_DATA: GDT = GDT {
-    null: Descriptor::NULL,
+    _null: Descriptor::NULL,
     code: Descriptor::NULL,
     data: Descriptor::NULL,
 };

@@ -26,25 +26,25 @@ extern "C" fn kernel_main() -> ! {
 
     let mut terminal = Terminal::new(vga_handle);
 
-    writeln!(terminal, "Hello world");
+    let _ = writeln!(terminal, "Hello world");
 
     check_cpu_features(&mut terminal).expect("error: CPU is not compatible");
 
     enable_cpu_features();
 
-    writeln!(terminal, "PAE and NX-bit enabled.");
+    let _ = writeln!(terminal, "PAE and NX-bit enabled.");
 
     GDT::load_gdt();
 
-    writeln!(terminal, "GDT loaded.");
+    let _ = writeln!(terminal, "GDT loaded.");
 
     let mut idt_handler = IDTHandler::new();
 
-    writeln!(terminal, "IDT loaded.");
+    let _ = writeln!(terminal, "IDT loaded.");
 
     idt_handler.enable_interrupts();
 
-    writeln!(terminal, "Interrupts enabled.");
+    let _ = writeln!(terminal, "Interrupts enabled.");
 
     let mut page_table = page_table::GlobalPageTable::new().expect("Page table handle loading failed");
     page_table.load_identity_map();
@@ -55,7 +55,7 @@ extern "C" fn kernel_main() -> ! {
         x86::controlregs::cr0_write(x86::controlregs::Cr0::CR0_ENABLE_PAGING | x86::controlregs::cr0());
     }
 
-    writeln!(terminal, "Paging enabled.");
+    let _ = writeln!(terminal, "Paging enabled.");
 
     let mut input = self::input::Input::new();
 
@@ -71,7 +71,7 @@ extern "C" fn kernel_main() -> ! {
                         }
                     },
                     hardware_interrupt => {
-                        writeln!(terminal, "HardwareInterrupt: {:?}", hardware_interrupt);
+                        let _ = writeln!(terminal, "HardwareInterrupt: {:?}", hardware_interrupt);
                     }
                 }
             }
@@ -91,13 +91,13 @@ fn check_cpu_features(log: &mut impl Write) -> Result<(), ()> {
             match vendor_info.as_string() {
                 "AuthenticAMD" | "GenuineIntel" => (),
                 unknown_vendor => {
-                    writeln!(log, "error: unknown CPU vendor '{}'", unknown_vendor);
+                    let _ = writeln!(log, "error: unknown CPU vendor '{}'", unknown_vendor);
                     return Err(());
                 }
             }
         },
         None => {
-            writeln!(log, "error: couldn't query CPU vendor");
+            let _ = writeln!(log, "error: couldn't query CPU vendor");
             return Err(());
         }
     }
@@ -105,12 +105,12 @@ fn check_cpu_features(log: &mut impl Write) -> Result<(), ()> {
     match cpu_id.get_extended_function_info() {
         Some(features) => {
             if !features.has_execute_disable() {
-                writeln!(log, "error: CPU doesn't support NX-bit");
+                let _ = writeln!(log, "error: CPU doesn't support NX-bit");
                 return Err(())
             }
         },
         None => {
-            writeln!(log, "error: CPU extended function info query failed");
+            let _ = writeln!(log, "error: CPU extended function info query failed");
             return Err(())
         }
     }
@@ -118,14 +118,14 @@ fn check_cpu_features(log: &mut impl Write) -> Result<(), ()> {
     match cpu_id.get_feature_info() {
         Some(features) => {
             if !features.has_pae() {
-                writeln!(log, "error: CPU doesn't support PAE");
+                let _ = writeln!(log, "error: CPU doesn't support PAE");
                 Err(())
             } else {
                 Ok(())
             }
         },
         None => {
-            writeln!(log, "error: CPU feature query failed");
+            let _ = writeln!(log, "error: CPU feature query failed");
             Err(())
         }
     }
@@ -155,7 +155,7 @@ fn panic(info: &PanicInfo) -> ! {
 
     let mut terminal = Terminal::new(text_buffer);
 
-    writeln!(terminal, "{:#?}", info);
+    let _ = writeln!(terminal, "{:#?}", info);
 
     loop {
         unsafe {
