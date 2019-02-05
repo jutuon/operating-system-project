@@ -59,23 +59,26 @@ extern "C" fn kernel_main() -> ! {
 
     let mut input = self::input::Input::new();
 
+
+    terminal.new_command_line();
+
     loop {
-        unsafe {
-            while let Some(hardware_interrupt) = idt_handler.handle_interrupt() {
-                use self::idt::HardwareInterrupt;
-                match hardware_interrupt {
-                    HardwareInterrupt::Keyboard => {
-                        let key = input.read_key();
-                        if let Some(c) = key {
-                            terminal.write_char(c);
-                        }
-                    },
-                    hardware_interrupt => {
-                        let _ = writeln!(terminal, "HardwareInterrupt: {:?}", hardware_interrupt);
+        while let Some(hardware_interrupt) = idt_handler.handle_interrupt() {
+            use self::idt::HardwareInterrupt;
+            match hardware_interrupt {
+                HardwareInterrupt::Keyboard => {
+                    let key = input.read_key();
+                    if let Some(k) = key {
+                        terminal.update_command_line(k);
                     }
+                },
+                hardware_interrupt => {
+                    let _ = writeln!(terminal, "HardwareInterrupt: {:?}", hardware_interrupt);
                 }
             }
+        }
 
+        unsafe {
             x86::halt()
         }
     }

@@ -43,11 +43,7 @@ impl Input {
         }
     }
 
-    pub fn read_key(&mut self) -> Option<char> {
-        match self.controller.read_keyboard() {
-            Some(DecodedKey::Unicode(c)) => Some(c),
-            Some(DecodedKey::RawKey(_)) => None,
-            None => None,
-        }
+    pub fn read_key(&mut self) -> Option<DecodedKey> {
+        self.controller.read_keyboard()
     }
 }
