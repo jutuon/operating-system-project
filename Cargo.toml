@@ -6,7 +6,7 @@ edition = "2018"
 publish = false
 
 [dependencies]
-pic8259 = { git = "https://github.com/jutuon/pic8259", rev = "551ed252aaad6f4b32e50cfeed4b1791e25ae178" }
+pc-at-pic8259a = { git = "https://github.com/jutuon/pic8259", rev = "6d278c12743f2e4241585ff5cf8ed390457e4007" }
 
 # Crates.io
 vga-framebuffer = "0.7.4"

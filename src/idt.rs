@@ -68,7 +68,7 @@ static mut IDT_DATA: IDT = IDT {
 
 pub struct PicPortIO;
 
-unsafe impl pic8259::PortIO for PicPortIO {
+impl pc_at_pic8259a::PortIO for PicPortIO {
     fn read(&self, port: u16) -> u8 {
         unsafe { x86::io::inb(port) }
     }
@@ -79,7 +79,7 @@ unsafe impl pic8259::PortIO for PicPortIO {
 }
 
 pub struct IDTHandler {
-    pic: pic8259::PicAEOI<PicPortIO>,
+    pic: pc_at_pic8259a::PicAEOI<PicPortIO>,
 }
 
 const MASTER_PIC_INTERRUPT_OFFSET: u8 = 32;
@@ -113,11 +113,11 @@ impl IDTHandler {
             INTERRUPT_DEQUE.set(ArrayDeque::new());
         }
 
-        use pic8259::*;
+        use pc_at_pic8259a::*;
 
-        let mut pic = pic8259::PicInit::start_init(PicPortIO, InterruptTriggerMode::EdgeTriggered)
-            .interrupt_offsets(MASTER_PIC_INTERRUPT_OFFSET, SLAVE_PIC_INTERRUPT_OFFSET)
-            .automatic_end_of_interrupt();
+        let mut pic = PicInit::send_icw1(PicPortIO, InterruptTriggerMode::EdgeTriggered)
+            .send_icw2_and_icw3(MASTER_PIC_INTERRUPT_OFFSET, SLAVE_PIC_INTERRUPT_OFFSET)
+            .send_icw4_aeoi();
 
         // Dedicate last interrupt line for spurious interrupts.
         const LAST_IRQ_LINE: u8 = 0b1000_0000;
