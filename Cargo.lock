@@ -4,6 +4,14 @@ version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
+name = "arrayvec"
+version = "0.4.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "nodrop 0.1.13 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "bitflags"
 version = "1.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -24,12 +32,19 @@ version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
+name = "nodrop"
+version = "0.1.13"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
 name = "operating-system-project"
 version = "0.1.0"
 dependencies = [
  "arraydeque 0.4.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "arrayvec 0.4.10 (registry+https://github.com/rust-lang/crates.io-index)",
  "bitflags 1.0.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "pc-at-pic8259a 0.1.0 (git+https://github.com/jutuon/pic8259?rev=6d278c12743f2e4241585ff5cf8ed390457e4007)",
+ "ps2-controller-x86 0.1.0",
  "seq-macro 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "vga-framebuffer 0.7.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "volatile 0.2.5 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -40,6 +55,19 @@ dependencies = [
 name = "pc-at-pic8259a"
 version = "0.1.0"
 source = "git+https://github.com/jutuon/pic8259?rev=6d278c12743f2e4241585ff5cf8ed390457e4007#6d278c12743f2e4241585ff5cf8ed390457e4007"
+
+[[package]]
+name = "pc-keyboard"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "ps2-controller-x86"
+version = "0.1.0"
+dependencies = [
+ "bitflags 1.0.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "pc-keyboard 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
+]
 
 [[package]]
 name = "raw-cpuid"
@@ -102,11 +130,14 @@ dependencies = [
 
 [metadata]
 "checksum arraydeque 0.4.3 (registry+https://github.com/rust-lang/crates.io-index)" = "e300327073b806ffc81fccb228b2d4131ac7ef1b1a015f7b0c399c7f886cacc6"
+"checksum arrayvec 0.4.10 (registry+https://github.com/rust-lang/crates.io-index)" = "92c7fb76bc8826a8b33b4ee5bb07a247a81e76764ab4d55e8f73e3a4d8808c71"
 "checksum bitflags 1.0.4 (registry+https://github.com/rust-lang/crates.io-index)" = "228047a76f468627ca71776ecdebd732a3423081fcf5125585bcd7c49886ce12"
 "checksum cc 1.0.25 (registry+https://github.com/rust-lang/crates.io-index)" = "f159dfd43363c4d08055a07703eb7a3406b0dac4d0584d96965a3262db3c9d16"
 "checksum console-traits 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)" = "f711b3d1d5c3f7ae7d6428901c0f3e5d5f5c800fcfac86bf0252e96373a2cec6"
 "checksum const-ft 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "990f5aebce907dc6f5e50e19b05e1095994b855a1ddd2aba8d4f2ec6802e59fd"
+"checksum nodrop 0.1.13 (registry+https://github.com/rust-lang/crates.io-index)" = "2f9667ddcc6cc8a43afc9b7917599d7216aa09c463919ea32c59ed6cac8bc945"
 "checksum pc-at-pic8259a 0.1.0 (git+https://github.com/jutuon/pic8259?rev=6d278c12743f2e4241585ff5cf8ed390457e4007)" = "<none>"
+"checksum pc-keyboard 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)" = "fff50ab09ba31bcebc0669f4e64c0952fae1acdca9e6e0587e68e4e8443808ac"
 "checksum raw-cpuid 6.0.0 (registry+https://github.com/rust-lang/crates.io-index)" = "41219962ecab392f1e68db9e7ebd972800d4045a128cc23462b384e8c312cde1"
 "checksum rustc_version 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)" = "138e3e0acb6c9fb258b19b67cb8abd63c00679d2851805ea151465464fe9030a"
 "checksum semver 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)" = "1d7eb9ef2c18661902cc47e535f9bc51b78acd254da71d375c2f6720d9a40403"
