@@ -66,9 +66,11 @@ static mut IDT_DATA: IDT = IDT {
     entries: [Descriptor::NULL; 256],
 };
 
+use pc_at_pic8259a::*;
+
 pub struct PicPortIO;
 
-impl pc_at_pic8259a::PortIO for PicPortIO {
+impl PortIO for PicPortIO {
     fn read(&self, port: u16) -> u8 {
         unsafe { x86::io::inb(port) }
     }
@@ -78,9 +80,9 @@ impl pc_at_pic8259a::PortIO for PicPortIO {
     }
 }
 
-pub struct IDTHandler {
-    _pic: pc_at_pic8259a::PicAEOI<PicPortIO>,
-}
+pub struct IDTHandler;
+
+use core::mem::MaybeUninit;
 
 const MASTER_PIC_INTERRUPT_OFFSET: u8 = 32;
 const SLAVE_PIC_INTERRUPT_OFFSET: u8 = MASTER_PIC_INTERRUPT_OFFSET + 8;
@@ -89,8 +91,9 @@ const MASTER_PIC_SPURIOUS_INTERRUPT: u8 = MASTER_PIC_INTERRUPT_OFFSET + 7;
 const SLAVE_PIC_SPURIOUS_INTERRUPT: u8 = SLAVE_PIC_INTERRUPT_OFFSET + 7;
 
 static mut RECEIVED_HARDWARE_INTERRUPT_BITFLAGS: u32 = 0;
-static mut INTERRUPT_DEQUE: core::mem::MaybeUninit<ArrayDeque<[HardwareInterrupt; 32], Saturating>> = core::mem::MaybeUninit::uninitialized();
+static mut INTERRUPT_DEQUE: MaybeUninit<ArrayDeque<[HardwareInterrupt; 32], Saturating>> = MaybeUninit::uninitialized();
 
+static mut PIC: MaybeUninit<Pic<PicPortIO>> = MaybeUninit::uninitialized();
 
 impl IDTHandler {
     pub fn new() -> Self {
@@ -113,11 +116,9 @@ impl IDTHandler {
             INTERRUPT_DEQUE.set(ArrayDeque::new());
         }
 
-        use pc_at_pic8259a::*;
-
         let mut pic = PicInit::send_icw1(PicPortIO, InterruptTriggerMode::EdgeTriggered)
             .send_icw2_and_icw3(MASTER_PIC_INTERRUPT_OFFSET, SLAVE_PIC_INTERRUPT_OFFSET)
-            .send_icw4_aeoi();
+            .send_icw4();
 
         // Dedicate last interrupt line for spurious interrupts.
         const LAST_IRQ_LINE: u8 = 0b1000_0000;
@@ -125,9 +126,11 @@ impl IDTHandler {
         pic.set_master_mask(LAST_IRQ_LINE | TIMER_IRQ_LINE);
         pic.set_slave_mask(LAST_IRQ_LINE);
 
-        IDTHandler {
-            _pic: pic
+        unsafe {
+            PIC.set(pic);
         }
+
+        IDTHandler
     }
 
     pub fn enable_interrupts(&mut self) {
@@ -189,7 +192,7 @@ pub enum Exception {
 struct UnknownInterrupt;
 
 impl Exception {
-    fn from_interrupt_number(interrupt_number: u32) -> Result<Self, UnknownInterrupt> {
+    fn from_interrupt_number(interrupt_number: u8) -> Result<Self, UnknownInterrupt> {
         use self::Exception::*;
         let exception = match interrupt_number {
             0 => DivideByZero,
@@ -237,7 +240,7 @@ pub enum HardwareInterrupt {
 }
 
 impl HardwareInterrupt {
-    fn from_interrupt_number(interrupt_number: u32) -> Result<Self, UnknownInterrupt> {
+    fn from_interrupt_number(interrupt_number: u8) -> Result<Self, UnknownInterrupt> {
         use self::HardwareInterrupt::*;
         let interrupt = match interrupt_number {
             32 => Timer,
@@ -260,6 +263,8 @@ impl HardwareInterrupt {
 
 #[no_mangle]
 extern "C" fn rust_interrupt_handler(interrupt_number: u32) {
+    let interrupt_number: u8 = interrupt_number as u8;
+
     use core::fmt::Write;
 
     let text_buffer = unsafe {
@@ -285,7 +290,18 @@ extern "C" fn rust_interrupt_handler(interrupt_number: u32) {
             }
         }
 
-        if interrupt_number == MASTER_PIC_SPURIOUS_INTERRUPT as u32 {
+        if MASTER_PIC_INTERRUPT_OFFSET <= interrupt_number && interrupt_number < MASTER_PIC_SPURIOUS_INTERRUPT {
+            unsafe {
+                PIC.get_mut().send_eoi_to_master();
+            }
+        } else if SLAVE_PIC_INTERRUPT_OFFSET <= interrupt_number && interrupt_number < SLAVE_PIC_SPURIOUS_INTERRUPT {
+            unsafe {
+                PIC.get_mut().send_eoi_to_slave();
+                PIC.get_mut().send_eoi_to_master();
+            }
+        }
+
+        if interrupt_number == MASTER_PIC_SPURIOUS_INTERRUPT {
             let _ = writeln!(terminal, "Spurious interrupt form master PIC");
 
             unsafe {
@@ -293,11 +309,12 @@ extern "C" fn rust_interrupt_handler(interrupt_number: u32) {
             }
         }
 
-        if interrupt_number == SLAVE_PIC_SPURIOUS_INTERRUPT as u32 {
+        if interrupt_number == SLAVE_PIC_SPURIOUS_INTERRUPT {
             let _ = writeln!(terminal, "Spurious interrupt form slave PIC");
 
             unsafe {
                 SLAVE_PIC_SPURIOUS_INTERRUPT_COUNT += 1;
+                PIC.get_mut().send_eoi_to_master();
             }
         }
     }
@@ -308,7 +325,7 @@ extern "C" fn rust_interrupt_handler_with_error(
     interrupt_number: u32,
     error_code: u32
 ) {
-    let exception = Exception::from_interrupt_number(interrupt_number);
+    let exception = Exception::from_interrupt_number(interrupt_number as u8);
     panic!("Interrupt {:?}, number: {}, error: {:#08x}",
         exception, interrupt_number, error_code);
 }
