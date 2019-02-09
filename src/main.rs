@@ -94,6 +94,10 @@ extern "C" fn kernel_main() -> ! {
             }
         }
 
+        // TODO: Here is a possible deadlock if IDT interrupt handler runs just before
+        //       x86::halt() and if there won't be more interrupts until a device driver
+        //       handles the received interrupt.
+
         unsafe {
             x86::halt()
         }
