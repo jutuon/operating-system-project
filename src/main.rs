@@ -57,8 +57,22 @@ extern "C" fn kernel_main() -> ! {
 
     let _ = writeln!(terminal, "Paging enabled.");
 
-    let mut input = self::input::Input::new();
+    let _ = writeln!(terminal, "Initializing hardware devices...");
 
+    let wait_keyboard_interrupt = self::input::Input::start_init();
+
+    let mut input_module = match wait_keyboard_interrupt.poll_data() {
+        Ok(input) => {
+            let _ = writeln!(terminal, "Keyboard initialized.");
+            Some(input)
+        },
+        Err(e) => {
+            let _ = writeln!(terminal, "Couldn't initialize keyboard: {:?}", e);
+            None
+        }
+    };
+
+    let _ = writeln!(terminal, "Hardware devices initialized.");
 
     terminal.new_command_line();
 
@@ -67,9 +81,11 @@ extern "C" fn kernel_main() -> ! {
             use self::idt::HardwareInterrupt;
             match hardware_interrupt {
                 HardwareInterrupt::Keyboard => {
-                    let key = input.read_key();
-                    if let Some(k) = key {
-                        terminal.update_command_line(k);
+                    if let Some(input) = &mut input_module {
+                        let key = input.handle_keyboard_interrupt();
+                        if let Some(k) = key {
+                            terminal.update_command_line(k);
+                        }
                     }
                 },
                 hardware_interrupt => {

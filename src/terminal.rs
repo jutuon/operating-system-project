@@ -1,6 +1,6 @@
 
 
-use ps2_controller_x86::pc_keyboard::{DecodedKey, KeyCode};
+use pc_ps2_controller::pc_keyboard::{DecodedKey, KeyCode};
 
 use arrayvec::ArrayString;
 
