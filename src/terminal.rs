@@ -1,6 +1,6 @@
 
 
-use pc_ps2_controller::pc_keyboard::{DecodedKey, KeyCode};
+use crate::input::KeyPress;
 
 use arrayvec::ArrayString;
 
@@ -44,9 +44,9 @@ impl Terminal {
         }
     }
 
-    pub fn update_command_line(&mut self, key: DecodedKey) {
+    pub fn update_command_line(&mut self, key: KeyPress) {
         match key {
-            DecodedKey::Unicode(c) => {
+            KeyPress::Unicode(c) => {
                 if c == '\n' {
                     self.new_command_line();
                 } else if c.is_ascii() && self.position < VGA_TEXT_WIDTH - 1 {
@@ -54,15 +54,11 @@ impl Terminal {
                     self.command.push(c);
                 }
             },
-            DecodedKey::RawKey(key_code) => {
-                match key_code {
-                    KeyCode::ArrowLeft => self.write_char('q'),
-                    KeyCode::ArrowRight => (),
-                    KeyCode::Backspace =>  self.write_char('e'),
-                    KeyCode::Enter => self.write_char('w'),
-                    _ => (),
-                }
-            }
+            KeyPress::Left => (),
+            KeyPress::Right => (),
+            KeyPress::Backspace => (),
+            KeyPress::Enter => self.new_command_line(),
+            _ => (),
         }
     }
 

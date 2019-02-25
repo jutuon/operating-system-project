@@ -42,10 +42,6 @@ extern "C" fn kernel_main() -> ! {
 
     let _ = writeln!(terminal, "IDT loaded.");
 
-    idt_handler.enable_interrupts();
-
-    let _ = writeln!(terminal, "Interrupts enabled.");
-
     let mut page_table = page_table::GlobalPageTable::new().expect("Page table handle loading failed");
     page_table.load_identity_map();
 
@@ -59,9 +55,7 @@ extern "C" fn kernel_main() -> ! {
 
     let _ = writeln!(terminal, "Initializing hardware devices...");
 
-    let wait_keyboard_interrupt = self::input::Input::start_init();
-
-    let mut input_module = match wait_keyboard_interrupt.poll_data() {
+    let mut input_module = match self::input::Input::init() {
         Ok(input) => {
             let _ = writeln!(terminal, "Keyboard initialized.");
             Some(input)
@@ -74,6 +68,10 @@ extern "C" fn kernel_main() -> ! {
 
     let _ = writeln!(terminal, "Hardware devices initialized.");
 
+    idt_handler.enable_interrupts();
+
+    let _ = writeln!(terminal, "Interrupts enabled.");
+
     terminal.new_command_line();
 
     loop {
@@ -83,8 +81,13 @@ extern "C" fn kernel_main() -> ! {
                 HardwareInterrupt::Keyboard => {
                     if let Some(input) = &mut input_module {
                         let key = input.handle_keyboard_interrupt();
-                        if let Some(k) = key {
-                            terminal.update_command_line(k);
+
+                        match key {
+                            Ok(Some(k)) => terminal.update_command_line(k),
+                            Ok(None) => (),
+                            Err(e) => {
+                                let _ = writeln!(terminal, "Keyboard error: {:?}", e);
+                            }
                         }
                     }
                 },
