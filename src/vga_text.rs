@@ -61,16 +61,26 @@ impl VgaTextBuffer {
         &mut self.vga_text_buffer[y*VGA_TEXT_WIDTH .. (y+2)*VGA_TEXT_WIDTH]
     }
 
-    pub fn scroll_line(&mut self) {
-        for x in 0..(VGA_TEXT_HEIGHT-1) {
+    pub fn scroll_area(&mut self, start_line_index: usize, line_count: usize) {
+        for x in start_line_index..(line_count-1) {
             let (line1, line2) = self.two_lines_mut(x).split_at_mut(VGA_TEXT_WIDTH);
             for (target, data) in line1.iter_mut().zip(line2.iter()) {
                 *target = *data;
             }
         }
 
-        for x in self.line_mut(VGA_TEXT_HEIGHT-1).iter_mut() {
+        for x in self.line_mut(line_count-1).iter_mut() {
             *x = 0;
+        }
+    }
+
+    pub fn scroll_line(&mut self) {
+        self.scroll_area(0, VGA_TEXT_HEIGHT)
+    }
+
+    pub fn clear_line(&mut self, y: usize) {
+        for data in self.line_mut(y).iter_mut() {
+            *data = 0;
         }
     }
 }

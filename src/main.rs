@@ -72,8 +72,6 @@ extern "C" fn kernel_main() -> ! {
 
     let _ = writeln!(terminal, "Interrupts enabled.");
 
-    terminal.new_command_line();
-
     loop {
         while let Some(hardware_interrupt) = idt_handler.handle_interrupt() {
             use self::idt::HardwareInterrupt;
