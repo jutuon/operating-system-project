@@ -17,6 +17,7 @@ use pc_ps2_controller::{
         KeyEvent,
         KeyCode,
         KeyState,
+        HandleControl,
     },
     pc_keyboard,
 };
@@ -72,7 +73,7 @@ impl Input {
         controller.self_test().map_err(|e| InputError::ControllerSelfTestError(e))?;
         controller.scancode_translation(false);
         let mut controller = controller.enable_devices_and_interrupts(EnableDevice::Keyboard).map_err(|(_, e)| InputError::KeyboardConnectionError(e))?;
-        let keyevent_decoder = pc_keyboard::Keyboard::new(Us104Key, ScancodeSet2);
+        let keyevent_decoder = pc_keyboard::Keyboard::new(Us104Key, ScancodeSet2, HandleControl::Ignore);
         let mut keyboard_driver = Keyboard::new(&mut ToKeyboard(&mut controller)).unwrap();
         keyboard_driver.set_defaults_and_enable(&mut ToKeyboard(&mut controller)).unwrap();
 
