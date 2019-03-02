@@ -8,7 +8,7 @@
 * Programmable interrupt controller (Intel 8259A)
 * VGA text mode
 
-# Building and running
+## Building and running
 
 1. Install Rust
 
@@ -29,6 +29,16 @@ sudo apt install qemu-system-x86 xorriso grub2-common
 
 6. Run Justfile with `just`. By default this builds the
 operating system and starts it in QEMU.
+
+### Bochs x86 emulator
+
+1. Install Bochs.
+
+```
+sudo apt install bochs bochs-sdl
+```
+
+2. `just run-bochs`
 
 ## License
 

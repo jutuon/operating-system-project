@@ -1,0 +1,9 @@
+config_interface: textconfig
+display_library: sdl
+boot: cdrom
+cpu: model=bx_generic
+romimage: file=/usr/share/bochs/BIOS-bochs-latest
+vgaromimage: file=/usr/share/vgabios/vgabios-stdvga.bin
+vga: extension=none
+megs: 32
+ata0-master: type=cdrom, path=build/grub.iso, status=inserted
