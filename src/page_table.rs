@@ -1,8 +1,8 @@
 
 use bitflags::bitflags;
 
-const GIGA_BYTE: u64 = MEGA_BYTE*1024;
-const MEGA_BYTE: u64 = 1024*1024;
+const GIBIBYTE: u64 = MIBIBYTE*1024;
+const MIBIBYTE: u64 = 1024*1024;
 
 use core::sync::atomic::{AtomicBool, Ordering};
 
@@ -61,10 +61,10 @@ impl GlobalPageTable {
             }
         }
         let flags = L2Flags2MB::READ_WRITE | L2Flags2MB::PRESENT | L2Flags2MB::USER_SUPERVISOR;
-        fill_page_table(flags, 0, &mut self.data.level2_1, MEGA_BYTE*2);
-        fill_page_table(flags, GIGA_BYTE, &mut self.data.level2_2, MEGA_BYTE*2);
-        fill_page_table(flags, GIGA_BYTE*2, &mut self.data.level2_3, MEGA_BYTE*2);
-        fill_page_table(flags, GIGA_BYTE*3, &mut self.data.level2_4, MEGA_BYTE*2);
+        fill_page_table(flags, 0, &mut self.data.level2_1, MIBIBYTE*2);
+        fill_page_table(flags, GIBIBYTE, &mut self.data.level2_2, MIBIBYTE*2);
+        fill_page_table(flags, GIBIBYTE*2, &mut self.data.level2_3, MIBIBYTE*2);
+        fill_page_table(flags, GIBIBYTE*3, &mut self.data.level2_4, MIBIBYTE*2);
     }
 
     pub fn level3_start_address(&self) -> usize {
