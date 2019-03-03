@@ -91,7 +91,11 @@ impl Input {
             self.keyboard_driver.receive_data(data, &mut ToKeyboard(&mut self.ps2_controller)).map(|event| {
                 match event {
                     Some(KeyboardEvent::Key(event)) => self.keyboard_event_to_key_press(event),
-                    Some(KeyboardEvent::BATCompleted) | None => None,
+                    Some(KeyboardEvent::BATCompleted) |
+                    Some(KeyboardEvent::ID {..}) |
+                    Some(KeyboardEvent::ScancodeSet(_)) |
+                    Some(KeyboardEvent::Echo) |
+                    None => None,
                 }
             })
         } else {

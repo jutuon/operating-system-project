@@ -7,7 +7,7 @@ publish = false
 
 [dependencies]
 pc-at-pic8259a = { git = "https://github.com/jutuon/pic8259", rev = "6d278c12743f2e4241585ff5cf8ed390457e4007" }
-pc-ps2-controller = { git = "https://github.com/jutuon/pc-ps2-controller", rev = "f20253a5857fba62bc82c47dfe2c0a5ea58445cd" }
+pc-ps2-controller = { git = "https://github.com/jutuon/pc-ps2-controller", rev = "44dea14d3d8a502123b951723e8af4d77e45477e" }
 
 # Crates.io
 vga-framebuffer = "0.7.4"
