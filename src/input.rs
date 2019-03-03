@@ -75,7 +75,7 @@ impl Input {
         let mut controller = controller.enable_devices_and_interrupts(EnableDevice::Keyboard).map_err(|(_, e)| InputError::KeyboardConnectionError(e))?;
         let keyevent_decoder = pc_keyboard::Keyboard::new(Us104Key, ScancodeSet2, HandleControl::Ignore);
         let mut keyboard_driver = Keyboard::new(&mut ToKeyboard(&mut controller)).unwrap();
-        keyboard_driver.set_defaults_and_enable(&mut ToKeyboard(&mut controller)).unwrap();
+        keyboard_driver.enable(&mut ToKeyboard(&mut controller)).unwrap();
 
         let input = Input {
             ps2_controller: controller,
