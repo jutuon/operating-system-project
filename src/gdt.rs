@@ -45,9 +45,9 @@ impl GDT {
             x86::bits32::segmentation::load_cs(code_segment_selector);
             load_ds(data_and_stack_segment_selector);
             load_ss(data_and_stack_segment_selector);
-            load_es(SegmentSelector::RPL_0);
-            load_fs(SegmentSelector::RPL_0);
-            load_gs(SegmentSelector::RPL_0);
+            load_es(data_and_stack_segment_selector);
+            load_fs(data_and_stack_segment_selector);
+            load_gs(data_and_stack_segment_selector);
         }
     }
 
