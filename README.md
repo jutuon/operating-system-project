@@ -40,6 +40,18 @@ sudo apt install bochs bochs-sdl
 
 2. `just run-bochs`
 
+### VirtualBox
+
+1. Install VirtualBox.
+
+```
+sudo apt install virtualbox
+```
+
+2. `just create-virtualbox-vm`
+
+3. `just run-virtualbox`
+
 ## License
 
 This project is licensed under terms of
