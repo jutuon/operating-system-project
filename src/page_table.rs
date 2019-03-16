@@ -8,6 +8,11 @@ use core::sync::atomic::{AtomicBool, Ordering};
 
 static PAGE_TABLE_HANDLE_CREATED: AtomicBool = AtomicBool::new(false);
 
+extern "C" {
+    #[allow(improper_ctypes)]
+    pub static READ_WRITE_PAGE_START_LOCATION: ();
+}
+
 #[repr(align(4096), C)] // 1024*4 = PAGE_TABLE_SIZE
 pub struct PageTableData {
     level3: [L3PageTableEntry; 512],
@@ -54,17 +59,26 @@ impl GlobalPageTable {
         self.data.level3[2] = L3PageTableEntry::new(self.data.level2_3.as_ptr() as u64, L3Flags::PRESENT);
         self.data.level3[3] = L3PageTableEntry::new(self.data.level2_4.as_ptr() as u64, L3Flags::PRESENT);
 
-        fn fill_page_table<F: EntryFlags>(flags: F, mut start_address: u64, table: &mut [GenericPageTableEntry<F, PhysicalAddressHandler2MBytesPDE>; 512], address_offset: u64) {
+        fn fill_page_table<F: EntryFlags>(mut flags: F, mut start_address: u64, table: &mut [GenericPageTableEntry<F, PhysicalAddressHandler2MBytesPDE>; 512], address_offset: u64, read_write_flag: F) {
             for entry in table.iter_mut() {
+                unsafe {
+                    if start_address >= &READ_WRITE_PAGE_START_LOCATION as *const () as u64 {
+                        flags |= read_write_flag;
+                    }
+                }
+
                 *entry = <GenericPageTableEntry<_, _>>::new(start_address, flags);
                 start_address += address_offset;
             }
         }
-        let flags = L2Flags2MB::READ_WRITE | L2Flags2MB::PRESENT | L2Flags2MB::USER_SUPERVISOR;
-        fill_page_table(flags, 0, &mut self.data.level2_1, MIBIBYTE*2);
-        fill_page_table(flags, GIBIBYTE, &mut self.data.level2_2, MIBIBYTE*2);
-        fill_page_table(flags, GIBIBYTE*2, &mut self.data.level2_3, MIBIBYTE*2);
-        fill_page_table(flags, GIBIBYTE*3, &mut self.data.level2_4, MIBIBYTE*2);
+        let flags = L2Flags2MB::PRESENT | L2Flags2MB::USER_SUPERVISOR;
+        fill_page_table(flags, 0, &mut self.data.level2_1, MIBIBYTE*2, L2Flags2MB::READ_WRITE);
+        fill_page_table(flags, GIBIBYTE, &mut self.data.level2_2, MIBIBYTE*2, L2Flags2MB::READ_WRITE);
+        fill_page_table(flags, GIBIBYTE*2, &mut self.data.level2_3, MIBIBYTE*2, L2Flags2MB::READ_WRITE);
+        fill_page_table(flags, GIBIBYTE*3, &mut self.data.level2_4, MIBIBYTE*2, L2Flags2MB::READ_WRITE);
+
+        // Allow writing to VGA text buffer.
+        self.data.level2_1[0] = <GenericPageTableEntry<_, _>>::new(0, flags | L2Flags2MB::READ_WRITE);
     }
 
     pub fn level3_start_address(&self) -> usize {
@@ -103,7 +117,7 @@ pub trait PhysicalAddressHandler {
     }
 }
 
-pub trait EntryFlags: Sized + Copy + Clone + core::ops::Not<Output=Self> {
+pub trait EntryFlags: Sized + Copy + Clone + core::ops::Not<Output=Self> + core::ops::BitOr + core::ops::BitOrAssign {
     fn all() -> Self;
     fn bits(&self) -> u64;
     fn from_bits_truncate(value: u64) -> Self;

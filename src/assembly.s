@@ -16,11 +16,12 @@ _start:
     jmp kernel_main
 
 # Stack area
-.bss
-.balign 4
+.bss 0
+.balign 1024*1024*2
 
-stack_end:
-    .space 1024*1024 # 1 MiB
+.global READ_WRITE_PAGE_START_LOCATION
+READ_WRITE_PAGE_START_LOCATION:
+    .space 1024*1024*2 # 2 MiB
 stack_start:
 
 
@@ -309,7 +310,3 @@ interrupt 252
 interrupt 253
 interrupt 254
 interrupt 255
-
-
-
-

@@ -1,7 +1,7 @@
 ENTRY("_start")
 
 SECTIONS {
-    . = 1M;
+    . = 2M;
     .header : {
         /* multiboot header */
         LONG(0x1BADB002)                  /* magic number                           */
@@ -13,6 +13,9 @@ SECTIONS {
         KEEP(*(.text))
         *(.text.*)
     }
+    .bss : {
+        *(.bss.0) /* stack */
+        *(.bss)
+    }
     .data : { *(.data) }
-    .bss : { *(.bss) }
 }
