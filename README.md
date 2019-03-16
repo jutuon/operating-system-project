@@ -19,7 +19,7 @@
 
 ```
 rustup component add rust-src
-cargo install --vers=0.5.1 cargo-xbuild
+cargo install --vers=0.5.5 cargo-xbuild
 cargo install just
 sudo apt install qemu-system-x86 xorriso grub2-common
 ```

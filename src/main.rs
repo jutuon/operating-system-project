@@ -1,4 +1,4 @@
-#![feature(global_asm, maybe_uninit)]
+#![feature(global_asm, maybe_uninit, maybe_uninit_ref)]
 #![feature(const_fn)]
 
 #![no_std]
