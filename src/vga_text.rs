@@ -10,14 +10,16 @@ const VGA_TEXT_BUFFER_START: *mut u16 = 0xB8000 as *mut u16;
 pub const VGA_TEXT_WIDTH: usize = 80;
 pub const VGA_TEXT_HEIGHT: usize = 25;
 
+use volatile::Volatile;
+
 #[derive(Debug)]
 pub struct VgaTextBuffer {
-    pub vga_text_buffer: &'static mut [u16],
+    pub vga_text_buffer: &'static mut [Volatile<u16>],
 }
 
 impl VgaTextBuffer {
     pub unsafe fn new_unsafe() -> Self {
-        let vga_text_buffer = slice::from_raw_parts_mut(VGA_TEXT_BUFFER_START, VGA_TEXT_WIDTH*VGA_TEXT_HEIGHT);
+        let vga_text_buffer = slice::from_raw_parts_mut(VGA_TEXT_BUFFER_START as *mut _, VGA_TEXT_WIDTH*VGA_TEXT_HEIGHT);
 
         Self {
             vga_text_buffer
@@ -35,29 +37,29 @@ impl VgaTextBuffer {
 
     pub fn clear(&mut self) {
         for x in self.vga_text_buffer.iter_mut() {
-            *x = 0;
+            x.write(0);
         }
     }
 
     pub fn write_to_start(&mut self, data: &[u16]) {
         for (target, data) in self.vga_text_buffer.iter_mut().zip(data.iter()) {
-            *target = *data;
+            target.write(*data);
         }
     }
 
     pub fn write(&mut self, x: usize, y: usize, value: u16) {
-        self.vga_text_buffer[x+y*VGA_TEXT_WIDTH] = value;
+        self.vga_text_buffer[x+y*VGA_TEXT_WIDTH].write(value);
     }
 
-    pub fn line(&mut self, y: usize) -> &[u16] {
+    pub fn line(&mut self, y: usize) -> &[Volatile<u16>] {
         &self.vga_text_buffer[y*VGA_TEXT_WIDTH .. (y+1)*VGA_TEXT_WIDTH]
     }
 
-    pub fn line_mut(&mut self, y: usize) -> &mut [u16] {
+    pub fn line_mut(&mut self, y: usize) -> &mut [Volatile<u16>] {
         &mut self.vga_text_buffer[y*VGA_TEXT_WIDTH .. (y+1)*VGA_TEXT_WIDTH]
     }
 
-    pub fn two_lines_mut(&mut self, y: usize) -> &mut [u16] {
+    pub fn two_lines_mut(&mut self, y: usize) -> &mut [Volatile<u16>] {
         &mut self.vga_text_buffer[y*VGA_TEXT_WIDTH .. (y+2)*VGA_TEXT_WIDTH]
     }
 
@@ -65,12 +67,12 @@ impl VgaTextBuffer {
         for x in start_line_index..(line_count-1) {
             let (line1, line2) = self.two_lines_mut(x).split_at_mut(VGA_TEXT_WIDTH);
             for (target, data) in line1.iter_mut().zip(line2.iter()) {
-                *target = *data;
+                target.write(data.read());
             }
         }
 
         for x in self.line_mut(line_count-1).iter_mut() {
-            *x = 0;
+            x.write(0);
         }
     }
 
@@ -80,7 +82,7 @@ impl VgaTextBuffer {
 
     pub fn clear_line(&mut self, y: usize) {
         for data in self.line_mut(y).iter_mut() {
-            *data = 0;
+            data.write(0);
         }
     }
 }
