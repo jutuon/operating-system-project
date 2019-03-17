@@ -78,7 +78,7 @@ impl GlobalPageTable {
         fill_page_table(flags, GIBIBYTE*3, &mut self.data.level2_4, MIBIBYTE*2, L2Flags2MB::READ_WRITE);
 
         // Allow writing to VGA text buffer.
-        self.data.level2_1[0] = <GenericPageTableEntry<_, _>>::new(0, flags | L2Flags2MB::READ_WRITE);
+        self.data.level2_1[0] = <GenericPageTableEntry<_, _>>::new(0, flags | L2Flags2MB::READ_WRITE | L2Flags2MB::PAGE_LEVEL_CACHE_DISABLE);
     }
 
     pub fn level3_start_address(&self) -> usize {
