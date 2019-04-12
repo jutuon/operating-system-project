@@ -9,7 +9,8 @@
 
 _start:
     # init stack
-    mov $stack_start, %esp
+    mov $stack_start_plus_4_bytes, %esp
+    sub $4, %esp
     mov $0, %ebp
 
     # jump to rust
@@ -22,7 +23,7 @@ _start:
 .global READ_WRITE_PAGE_START_LOCATION
 READ_WRITE_PAGE_START_LOCATION:
     .space 1024*1024*2 # 2 MiB
-stack_start:
+stack_start_plus_4_bytes:
 
 
 # Interrupt handler macros
