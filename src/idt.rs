@@ -267,11 +267,11 @@ extern "C" fn rust_interrupt_handler(interrupt_number: u32) {
 
     use core::fmt::Write;
 
-    let text_buffer = unsafe {
-        crate::vga_text::VgaTextBuffer::new_unsafe()
+    let text_mode = unsafe {
+        crate::vga_text::new_vga_text_mode_unsafe()
     };
 
-    let mut terminal = crate::terminal::Terminal::new(text_buffer);
+    let mut terminal = crate::terminal::Terminal::new(text_mode);
 
     let exception = Exception::from_interrupt_number(interrupt_number);
 

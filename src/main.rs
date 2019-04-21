@@ -21,8 +21,8 @@ use core::fmt::Write;
 
 #[no_mangle]
 extern "C" fn kernel_main() -> ! {
-    let mut vga_handle = vga_text::VgaTextBuffer::new().unwrap();
-    vga_handle.clear();
+    let mut vga_handle = vga_text::new_vga_text_mode().unwrap();
+    vga_handle.clear_screen(vga::driver::text::VgaChar::empty());
 
     let mut terminal = Terminal::new(vga_handle);
 
@@ -173,11 +173,11 @@ use core::panic::PanicInfo;
 /// This function is called on panic.
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
-    let text_buffer = unsafe {
-        vga_text::VgaTextBuffer::new_unsafe()
+    let text_mode = unsafe {
+        vga_text::new_vga_text_mode_unsafe()
     };
 
-    let mut terminal = Terminal::new(text_buffer);
+    let mut terminal = Terminal::new(text_mode);
 
     let _ = writeln!(terminal, "{:#?}", info);
 
