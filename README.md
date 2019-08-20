@@ -21,7 +21,7 @@
 rustup component add rust-src
 cargo install --vers=0.5.5 cargo-xbuild
 cargo install just
-sudo apt install qemu-system-x86 xorriso grub2-common mtools
+sudo apt install qemu-system-x86 xorriso grub2-common mtools binutils-i686-linux-gnu
 ```
 4. `git clone https://github.com/jutuon/operating-system-project`
 

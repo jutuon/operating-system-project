@@ -5,6 +5,9 @@ authors = ["Juuso Tuononen <jutuon@outlook.com>"]
 edition = "2018"
 publish = false
 
+[lib]
+crate-type = ["staticlib"]
+
 [dependencies]
 pc-at-pic8259a = { git = "https://github.com/jutuon/pic8259", rev = "6d278c12743f2e4241585ff5cf8ed390457e4007" }
 pc-ps2-controller = { git = "https://github.com/jutuon/pc-ps2-controller", rev = "44dea14d3d8a502123b951723e8af4d77e45477e" }

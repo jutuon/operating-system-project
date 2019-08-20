@@ -1,10 +1,7 @@
-#![feature(global_asm)]
 #![feature(const_fn)]
 
 #![no_std]
 #![no_main]
-
-global_asm!(include_str!("assembly.s"));
 
 pub mod vga_text;
 pub mod terminal;

@@ -1,4 +1,7 @@
+LD_FEATURE("SANE_EXPR")
+
 ENTRY("_start")
+TARGET("elf32-i386")
 
 SECTIONS {
     . = 2M;

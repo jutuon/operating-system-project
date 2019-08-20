@@ -18,26 +18,31 @@ run-cmd-bochs:
 run-cmd-virtualbox:
     vboxmanage startvm "operating-system-project" --type gui
 
-build: build-debug-binary create-grub-iso
-build-release: build-release-binary create-grub-iso-release
+build: create-build-dir build-assembly build-rust-library-debug link create-grub-iso
+build-release: create-build-dir build-assembly build-rust-library-release link create-grub-iso
+
+@create-build-dir:
+    mkdir build 2> /dev/null | true
+
+@build-assembly:
+    i686-linux-gnu-as --fatal-warnings -march=i686 -o build/assembly.o src/assembly.s
+
+@link:
+    i686-linux-gnu-ld --fatal-warnings --warn-common --script linker-script.ld -o build/kernel.bin build/assembly.o build/liboperating_system_project.a
 
 
-@build-debug-binary:
-    cargo xrustc --target i686-unknown-none.json -- -C link-args="--script linker-script.ld"
-@build-release-binary:
-    cargo xrustc --release --target i686-unknown-none.json -- -C link-args="--script linker-script.ld"
+@build-rust-library-debug:
+    cargo xbuild --target i686-unknown-none.json
+    cp target/i686-unknown-none/debug/liboperating_system_project.a build/liboperating_system_project.a
+@build-rust-library-release:
+    cargo xbuild --release --target i686-unknown-none.json
+    cp target/i686-unknown-none/release/liboperating_system_project.a build/liboperating_system_project.a
 
 @create-grub-iso:
     mkdir -p build/iso/boot/grub 2> /dev/null | true
     cp grub.cfg build/iso/boot/grub
-    cp target/i686-unknown-none/debug/operating-system-project build/iso/boot/kernel.bin
+    cp build/kernel.bin build/iso/boot/kernel.bin
     grub-mkrescue -o build/grub.iso build/iso
-@create-grub-iso-release:
-    mkdir -p build/iso/boot/grub 2> /dev/null | true
-    cp grub.cfg build/iso/boot/grub
-    cp target/i686-unknown-none/release/operating-system-project build/iso/boot/kernel.bin
-    grub-mkrescue -o build/grub.iso build/iso
-
 
 clean:
 	rm -fr build
