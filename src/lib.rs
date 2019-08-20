@@ -16,14 +16,28 @@ use self::idt::IDTHandler;
 
 use core::fmt::Write;
 
+use multiboot2::BootInformation;
+
 #[no_mangle]
-extern "C" fn kernel_main() -> ! {
+extern "C" fn kernel_main(eax: u32, ebx: u32) -> ! {
     let mut vga_handle = vga_text::new_vga_text_mode().unwrap();
     vga_handle.clear_screen(vga::driver::text::VgaChar::empty());
 
     let mut terminal = Terminal::new(vga_handle, true);
 
     let _ = writeln!(terminal, "Hello world");
+
+    if eax != 0x36d76289 {
+        panic!("Boot loader was not Multiboot2-compliant, eax: {}", eax);
+    }
+
+    let boot_info = unsafe {
+        multiboot2::load(ebx as usize)
+    };
+
+    for memory in boot_info.memory_map_tag().unwrap().memory_areas() {
+        let _ = writeln!(terminal, "{:?}", memory);
+    }
 
     check_cpu_features(&mut terminal).expect("error: CPU is not compatible");
 

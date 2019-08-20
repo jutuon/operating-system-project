@@ -19,6 +19,9 @@ _start:
     # System V ABI - Intel386 requirement: clear direction flag from EFLAGS.
     cld
 
+    # extern "C" fn kernel_main(eax: u32, ebx: u32)
+    push %ebx
+    push %eax
     call kernel_main
 
 # Stack area

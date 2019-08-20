@@ -20,3 +20,4 @@ seq-macro = "0.1.2"
 arraydeque = { version = "0.4", default-features = false }
 arrayvec = { version = "0.4.10", default-features = false, features = ["array-sizes-33-128"] }
 bitflags = "1.0.4"
+multiboot2 = "0.8.1"
