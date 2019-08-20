@@ -91,9 +91,9 @@ const MASTER_PIC_SPURIOUS_INTERRUPT: u8 = MASTER_PIC_INTERRUPT_OFFSET + 7;
 const SLAVE_PIC_SPURIOUS_INTERRUPT: u8 = SLAVE_PIC_INTERRUPT_OFFSET + 7;
 
 static mut RECEIVED_HARDWARE_INTERRUPT_BITFLAGS: u32 = 0;
-static mut INTERRUPT_DEQUE: MaybeUninit<ArrayDeque<[HardwareInterrupt; 32], Saturating>> = MaybeUninit::uninitialized();
+static mut INTERRUPT_DEQUE: MaybeUninit<ArrayDeque<[HardwareInterrupt; 32], Saturating>> = MaybeUninit::uninit();
 
-static mut PIC: MaybeUninit<Pic<PicPortIO>> = MaybeUninit::uninitialized();
+static mut PIC: MaybeUninit<Pic<PicPortIO>> = MaybeUninit::uninit();
 
 impl IDTHandler {
     pub fn new() -> Self {
@@ -113,7 +113,7 @@ impl IDTHandler {
         }
 
         unsafe {
-            INTERRUPT_DEQUE.set(ArrayDeque::new());
+            *INTERRUPT_DEQUE.as_mut_ptr() = ArrayDeque::new();
         }
 
         let mut pic = PicInit::send_icw1(PicPortIO, InterruptTriggerMode::EdgeTriggered)
@@ -127,7 +127,7 @@ impl IDTHandler {
         pic.set_slave_mask(LAST_IRQ_LINE);
 
         unsafe {
-            PIC.set(pic);
+            *PIC.as_mut_ptr() = pic;
         }
 
         IDTHandler
@@ -142,7 +142,7 @@ impl IDTHandler {
     pub fn handle_interrupt(&mut self) -> Option<HardwareInterrupt> {
         unsafe {
             x86::irq::disable();
-            let interrupt = INTERRUPT_DEQUE.get_mut().pop_front();
+            let interrupt = INTERRUPT_DEQUE.as_mut_ptr().as_mut().unwrap().pop_front();
             if let Some(hardware_interrupt) = &interrupt {
                 RECEIVED_HARDWARE_INTERRUPT_BITFLAGS &= !(1 << *hardware_interrupt as u8);
             }
@@ -284,7 +284,7 @@ extern "C" fn rust_interrupt_handler(interrupt_number: u32) {
             unsafe {
                 let flag = 1 << interrupt as u8;
                 if flag & RECEIVED_HARDWARE_INTERRUPT_BITFLAGS == 0 {
-                    INTERRUPT_DEQUE.get_mut().push_back(interrupt).unwrap();
+                    INTERRUPT_DEQUE.as_mut_ptr().as_mut().unwrap().push_back(interrupt).unwrap();
                     RECEIVED_HARDWARE_INTERRUPT_BITFLAGS |= flag;
                 }
             }
@@ -292,12 +292,12 @@ extern "C" fn rust_interrupt_handler(interrupt_number: u32) {
 
         if MASTER_PIC_INTERRUPT_OFFSET <= interrupt_number && interrupt_number < MASTER_PIC_SPURIOUS_INTERRUPT {
             unsafe {
-                PIC.get_mut().send_eoi_to_master();
+                PIC.as_mut_ptr().as_mut().unwrap().send_eoi_to_master();
             }
         } else if SLAVE_PIC_INTERRUPT_OFFSET <= interrupt_number && interrupt_number < SLAVE_PIC_SPURIOUS_INTERRUPT {
             unsafe {
-                PIC.get_mut().send_eoi_to_slave();
-                PIC.get_mut().send_eoi_to_master();
+                PIC.as_mut_ptr().as_mut().unwrap().send_eoi_to_slave();
+                PIC.as_mut_ptr().as_mut().unwrap().send_eoi_to_master();
             }
         }
 
@@ -314,7 +314,7 @@ extern "C" fn rust_interrupt_handler(interrupt_number: u32) {
 
             unsafe {
                 SLAVE_PIC_SPURIOUS_INTERRUPT_COUNT += 1;
-                PIC.get_mut().send_eoi_to_master();
+                PIC.as_mut_ptr().as_mut().unwrap().send_eoi_to_master();
             }
         }
     }
