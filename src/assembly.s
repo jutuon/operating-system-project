@@ -4,6 +4,9 @@
 .global _start
 .extern kernel_main
 
+# System V ABI - Intel386 specification
+# http://www.sco.com/developers/devspecs/abi386-4.pdf
+
 # Code
 .text
 
@@ -13,8 +16,10 @@ _start:
     sub $4, %esp
     mov $0, %ebp
 
-    # jump to rust
-    jmp kernel_main
+    # System V ABI - Intel386 requirement: clear direction flag from EFLAGS.
+    cld
+
+    call kernel_main
 
 # Stack area
 .bss 0
@@ -25,17 +30,38 @@ READ_WRITE_PAGE_START_LOCATION:
     .space 1024*1024*2 # 2 MiB
 stack_start_plus_4_bytes:
 
-
 # Interrupt handler macros
 
 .macro interrupt number:req
 .text
 .global interrupt_\number
 interrupt_\number:
+    # System V ABI - Intel386 requirement: clear direction flag from EFLAGS.
+    cld
+
+    # System V ABI - Intel386 requirement: store general-purpose registers which
+    # function call doesn't preserve.
+    push %eax
+    push %ecx
+    push %edx
+
+    # Call function.
+
     push $\number
     # extern "C" fn rust_interrupt_handler(interrupt_number: u32)
     call rust_interrupt_handler
     add $4, %esp
+
+    # Restore general-purpose registers.
+    mov (%esp), %edx
+    mov 4(%esp), %ecx
+    mov 8(%esp), %eax
+
+    # Remove general-purpose registers from the stack.
+    add $12, %esp
+
+    # Stack pointer currently points to return EIP
+    # so lets return from the interrupt handler.
     iret
 .endm
 
@@ -43,13 +69,39 @@ interrupt_\number:
 .text
 .global interrupt_with_error_\number
 interrupt_with_error_\number:
-    # There is an 32 bit error code on top of the stack.
+    # System V ABI - Intel386 requirement: clear direction flag from EFLAGS.
+    cld
+
+    # System V ABI - Intel386 requirement: store general-purpose registers which
+    # function call doesn't preserve.
+    push %eax
+    push %ecx
+    push %edx
+
+    # Call function
+
+    mov 12(%esp), %eax
+    push %eax
     push $\number
     # extern "C" fn rust_interrupt_handler_with_error(
     #     interrupt_number: u32,
     #     error_code: u32)
     call rust_interrupt_handler_with_error
     add $8, %esp
+
+    # Restore general-purpose registers.
+    mov (%esp), %edx
+    mov 4(%esp), %ecx
+    mov 8(%esp), %eax
+
+    # Remove general-purpose registers from the stack.
+    add $12, %esp
+
+    # Remove error code from the stack.
+    add $4, %esp
+
+    # Stack pointer currently points to return EIP
+    # so lets return from the interrupt handler.
     iret
 .endm
 
