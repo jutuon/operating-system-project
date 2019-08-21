@@ -72,10 +72,11 @@ impl GlobalPageTable {
             }
         }
         let flags = L2Flags2MB::PRESENT | L2Flags2MB::USER_SUPERVISOR;
-        fill_page_table(flags, 0, &mut self.data.level2_1, MIBIBYTE*2, L2Flags2MB::READ_WRITE);
-        fill_page_table(flags, GIBIBYTE, &mut self.data.level2_2, MIBIBYTE*2, L2Flags2MB::READ_WRITE);
-        fill_page_table(flags, GIBIBYTE*2, &mut self.data.level2_3, MIBIBYTE*2, L2Flags2MB::READ_WRITE);
-        fill_page_table(flags, GIBIBYTE*3, &mut self.data.level2_4, MIBIBYTE*2, L2Flags2MB::READ_WRITE);
+        let stack_and_data_flags = L2Flags2MB::READ_WRITE | L2Flags2MB::NO_EXECUTE;
+        fill_page_table(flags, 0, &mut self.data.level2_1, MIBIBYTE*2, stack_and_data_flags);
+        fill_page_table(flags, GIBIBYTE, &mut self.data.level2_2, MIBIBYTE*2, stack_and_data_flags);
+        fill_page_table(flags, GIBIBYTE*2, &mut self.data.level2_3, MIBIBYTE*2, stack_and_data_flags);
+        fill_page_table(flags, GIBIBYTE*3, &mut self.data.level2_4, MIBIBYTE*2, stack_and_data_flags);
 
         // Allow writing to VGA text buffer.
         self.data.level2_1[0] = <GenericPageTableEntry<_, _>>::new(0, flags | L2Flags2MB::READ_WRITE | L2Flags2MB::PAGE_LEVEL_CACHE_DISABLE);
