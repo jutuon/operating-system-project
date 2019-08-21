@@ -16,8 +16,6 @@ use self::idt::IDTHandler;
 
 use core::fmt::Write;
 
-use multiboot2::BootInformation;
-
 #[no_mangle]
 extern "C" fn kernel_main(eax: u32, ebx: u32) -> ! {
     let mut vga_handle = vga_text::new_vga_text_mode().unwrap();
@@ -35,23 +33,15 @@ extern "C" fn kernel_main(eax: u32, ebx: u32) -> ! {
         multiboot2::load(ebx as usize)
     };
 
-    for memory in boot_info.memory_map_tag().unwrap().memory_areas() {
-        let _ = writeln!(terminal, "{:?}", memory);
-    }
+    let _ = writeln!(terminal, "{:?}", boot_info);
 
     check_cpu_features(&mut terminal).expect("error: CPU is not compatible");
 
     enable_cpu_features();
 
-    let _ = writeln!(terminal, "PAE and NX-bit enabled.");
-
     GDT::load_gdt();
 
-    let _ = writeln!(terminal, "GDT loaded.");
-
     let mut idt_handler = IDTHandler::new();
-
-    let _ = writeln!(terminal, "IDT loaded.");
 
     let mut page_table = page_table::GlobalPageTable::new().expect("Page table handle loading failed");
     page_table.load_identity_map();
@@ -62,13 +52,8 @@ extern "C" fn kernel_main(eax: u32, ebx: u32) -> ! {
         x86::controlregs::cr0_write(x86::controlregs::Cr0::CR0_WRITE_PROTECT | x86::controlregs::Cr0::CR0_ENABLE_PAGING | x86::controlregs::cr0());
     }
 
-    let _ = writeln!(terminal, "Paging enabled.");
-
-    let _ = writeln!(terminal, "Initializing hardware devices...");
-
     let mut input_module = match self::input::Input::init() {
         Ok(input) => {
-            let _ = writeln!(terminal, "Keyboard initialized.");
             Some(input)
         },
         Err(e) => {
@@ -77,11 +62,7 @@ extern "C" fn kernel_main(eax: u32, ebx: u32) -> ! {
         }
     };
 
-    let _ = writeln!(terminal, "Hardware devices initialized.");
-
     idt_handler.enable_interrupts();
-
-    let _ = writeln!(terminal, "Interrupts enabled.");
 
     loop {
         while let Some(hardware_interrupt) = idt_handler.handle_interrupt() {

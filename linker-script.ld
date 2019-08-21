@@ -4,7 +4,7 @@ ENTRY("_start")
 TARGET("elf32-i386")
 
 SECTIONS {
-    . = 2M;
+    . = 1M;
     .header ALIGN(8) : {
         /* Multiboot2 header */
         LONG(0xE85250D6)                       /* magic number                           */
@@ -18,13 +18,37 @@ SECTIONS {
         SHORT(0)
         LONG(8)
     }
+
+    . = 2M;
     .text : {
         KEEP(*(.text))
         *(.text.*)
     }
-    .bss : {
-        *(.bss.0) /* stack */
-        *(.bss)
+
+    . = 4M;
+    .stack : {
+        READ_WRITE_PAGE_START_LOCATION = .;
+        . = . + 2M;
+        stack_start_plus_4_bytes = .;
     }
-    .data : { *(.data) }
+
+    . = 6M;
+    .bss : {
+        *(.bss.*)
+    }
+    .data : {
+        *(.data)
+        *(.data.*)
+    }
+    .rodata : {
+        *(.rodata)
+        *(.rodata.*)
+    }
+    .got : {
+        *(.got)
+        *(.got.*)
+    }
+    /DISCARD/ : {
+        *(*)
+    }
 }

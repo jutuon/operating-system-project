@@ -24,15 +24,6 @@ _start:
     push %eax
     call kernel_main
 
-# Stack area
-.bss 0
-.balign 1024*1024*2
-
-.global READ_WRITE_PAGE_START_LOCATION
-READ_WRITE_PAGE_START_LOCATION:
-    .space 1024*1024*2 # 2 MiB
-stack_start_plus_4_bytes:
-
 # Interrupt handler macros
 
 .macro interrupt number:req
