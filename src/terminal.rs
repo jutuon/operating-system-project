@@ -13,12 +13,31 @@ const COMMAND_HISTORY_LINE_COUNT: usize = VGA_TEXT_HEIGHT - 1;
 const COMMAND_LINE_INDEX_Y: usize = VGA_TEXT_HEIGHT - 1;
 const COMMAND_LENGTH: usize = VGA_TEXT_WIDTH - 1;
 
-
 fn write_char_to_vga_text_buffer(text_mode: &mut VgaTextMode, x: usize, y: usize, c: char, blink: bool) {
+    use core::fmt::Write;
+    let mut debug_line = DebugLine { text_mode, position: 0 };
+    write!(debug_line, "--- x: {:5}, y: {:5} ---", x, y).unwrap();
     let vga_char = VgaChar::new(c).blink(blink).foreground_color(Colour::White);
     text_mode.lines_mut().nth(y).unwrap().iter_mut().nth(x).unwrap().write(vga_char);
 }
 
+pub struct DebugLine<'a> {
+    text_mode: &'a mut VgaTextMode,
+    position: usize,
+}
+
+impl core::fmt::Write for DebugLine<'_> {
+    fn write_str(&mut self, s: &str) -> core::fmt::Result {
+        let mut line = self.text_mode.lines_mut().nth(0).expect("DebugLine error");
+        for (c, mut vga) in s.chars().zip(line.iter_mut().skip(self.position)) {
+            let vga_char = VgaChar::new(c).foreground_color(Colour::White);
+            vga.write(vga_char);
+            self.position += 1;
+        }
+
+        Ok(())
+    }
+}
 
 pub struct Terminal {
     text_mode: VgaTextMode,
