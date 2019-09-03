@@ -73,7 +73,7 @@ extern "C" fn kernel_main(eax: u32, ebx: u32) -> ! {
     unsafe {
         let cr3_data = page_table::pae_cr3_format(page_table.level3_start_address(), false, false);
         x86::controlregs::cr3_write(cr3_data as u64);
-        x86::controlregs::cr0_write(x86::controlregs::Cr0::CR0_WRITE_PROTECT | x86::controlregs::Cr0::CR0_ENABLE_PAGING | x86::controlregs::cr0());
+        x86::controlregs::cr0_write(x86::controlregs::Cr0::CR0_EMULATE_COPROCESSOR | x86::controlregs::Cr0::CR0_WRITE_PROTECT | x86::controlregs::Cr0::CR0_ENABLE_PAGING | x86::controlregs::cr0());
     }
 
     let task = KernelTask::load();
