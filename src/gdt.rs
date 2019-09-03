@@ -42,6 +42,10 @@ impl GDT {
         unsafe {
             let pointer = DescriptorTablePointer::new(&GDT_DATA);
             lgdt(&pointer);
+
+            // Set LDTR to null, because it is not used.
+            load_ldtr(SegmentSelector::new(0, x86::Ring::Ring0));
+
             x86::bits32::segmentation::load_cs(code_segment_selector);
             load_ds(data_and_stack_segment_selector);
             load_ss(data_and_stack_segment_selector);
