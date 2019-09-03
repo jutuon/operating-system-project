@@ -8,11 +8,13 @@ pub mod terminal;
 pub mod page_table;
 pub mod gdt;
 pub mod idt;
+pub mod tss;
 pub mod input;
 
 use self::terminal::{Terminal};
 use self::gdt::GDT;
 use self::idt::IDTHandler;
+use self::tss::KernelTask;
 
 use core::fmt::Write;
 
@@ -51,6 +53,8 @@ extern "C" fn kernel_main(eax: u32, ebx: u32) -> ! {
         x86::controlregs::cr3_write(cr3_data as u64);
         x86::controlregs::cr0_write(x86::controlregs::Cr0::CR0_WRITE_PROTECT | x86::controlregs::Cr0::CR0_ENABLE_PAGING | x86::controlregs::cr0());
     }
+
+    let task = KernelTask::load();
 
     let mut input_module = match self::input::Input::init() {
         Ok(input) => {
