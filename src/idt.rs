@@ -1,5 +1,5 @@
 
-use core::sync::atomic::{AtomicUsize, Ordering};
+use core::sync::atomic::{AtomicUsize, AtomicU32, Ordering};
 use core::num::Wrapping;
 
 use x86::dtables::*;
@@ -94,10 +94,14 @@ const SLAVE_PIC_INTERRUPT_OFFSET: u8 = MASTER_PIC_INTERRUPT_OFFSET + 8;
 const MASTER_PIC_SPURIOUS_INTERRUPT: u8 = MASTER_PIC_INTERRUPT_OFFSET + 7;
 const SLAVE_PIC_SPURIOUS_INTERRUPT: u8 = SLAVE_PIC_INTERRUPT_OFFSET + 7;
 
-static mut RECEIVED_HARDWARE_INTERRUPT_BITFLAGS: u32 = 0;
-static mut INTERRUPT_DEQUE: MaybeUninit<ArrayDeque<[HardwareInterrupt; 32], Saturating>> = MaybeUninit::uninit();
+static RECEIVED_HARDWARE_INTERRUPT_BITFLAGS: AtomicU32 = AtomicU32::new(0);
+static mut INTERRUPT_DEQUE: Option<ArrayDeque<[HardwareInterrupt; 32], Saturating>> = None;
 
-static mut PIC: MaybeUninit<Pic<PicPortIO>> = MaybeUninit::uninit();
+static mut PIC: Option<Pic<PicPortIO>> = None;
+
+static MASTER_PIC_SPURIOUS_INTERRUPT_COUNT: AtomicUsize = AtomicUsize::new(0);
+static SLAVE_PIC_SPURIOUS_INTERRUPT_COUNT: AtomicUsize = AtomicUsize::new(0);
+
 pub static TIME_MILLISECONDS: AtomicUsize = AtomicUsize::new(0);
 
 impl IDTHandler {
@@ -118,7 +122,7 @@ impl IDTHandler {
         }
 
         unsafe {
-            *INTERRUPT_DEQUE.as_mut_ptr() = ArrayDeque::new();
+            INTERRUPT_DEQUE = Some(ArrayDeque::new());
         }
 
         let mut pic = PicInit::send_icw1(PicPortIO, InterruptTriggerMode::EdgeTriggered)
@@ -131,7 +135,7 @@ impl IDTHandler {
         pic.set_slave_mask(LAST_IRQ_LINE);
 
         unsafe {
-            *PIC.as_mut_ptr() = pic;
+            PIC = Some(pic);
         }
 
         IDTHandler
@@ -146,9 +150,10 @@ impl IDTHandler {
     pub fn handle_interrupt(&mut self) -> Option<HardwareInterrupt> {
         unsafe {
             x86::irq::disable();
-            let interrupt = INTERRUPT_DEQUE.as_mut_ptr().as_mut().unwrap().pop_front();
+            let interrupt = INTERRUPT_DEQUE.as_mut().unwrap().pop_front();
             if let Some(hardware_interrupt) = &interrupt {
-                RECEIVED_HARDWARE_INTERRUPT_BITFLAGS &= !(1 << *hardware_interrupt as u8);
+                let new = RECEIVED_HARDWARE_INTERRUPT_BITFLAGS.load(Ordering::Relaxed) & !(1 << *hardware_interrupt as u8);
+                RECEIVED_HARDWARE_INTERRUPT_BITFLAGS.store(new, Ordering::Relaxed);
             }
             x86::irq::enable();
             interrupt
@@ -156,16 +161,12 @@ impl IDTHandler {
     }
 
     pub fn master_pic_spurious_interrupts_count() -> usize {
-        unsafe { MASTER_PIC_SPURIOUS_INTERRUPT_COUNT }
+        MASTER_PIC_SPURIOUS_INTERRUPT_COUNT.load(Ordering::Relaxed)
     }
     pub fn slave_pic_spurious_interrupts_count() -> usize {
-        unsafe { SLAVE_PIC_SPURIOUS_INTERRUPT_COUNT }
+        SLAVE_PIC_SPURIOUS_INTERRUPT_COUNT.load(Ordering::Relaxed)
     }
 }
-
-static mut MASTER_PIC_SPURIOUS_INTERRUPT_COUNT: usize = 0;
-static mut SLAVE_PIC_SPURIOUS_INTERRUPT_COUNT: usize = 0;
-
 
 #[derive(Debug)]
 pub enum Exception {
@@ -288,43 +289,41 @@ extern "C" fn rust_interrupt_handler(interrupt_number: u32) {
             if let HardwareInterrupt::Timer = interrupt {
                 let new_time: Wrapping<usize> = Wrapping(TIME_MILLISECONDS.load(Ordering::Relaxed)) + Wrapping(55usize);
                 TIME_MILLISECONDS.store(new_time.0, Ordering::Relaxed);
-            }
-
-            unsafe {
+            } else {
                 let flag = 1 << interrupt as u8;
-                if flag & RECEIVED_HARDWARE_INTERRUPT_BITFLAGS == 0 {
-                    INTERRUPT_DEQUE.as_mut_ptr().as_mut().unwrap().push_back(interrupt).unwrap();
-                    RECEIVED_HARDWARE_INTERRUPT_BITFLAGS |= flag;
+                let interrupt_received_bitflags = RECEIVED_HARDWARE_INTERRUPT_BITFLAGS.load(Ordering::Relaxed);
+                if flag & interrupt_received_bitflags == 0 {
+                    unsafe {
+                        INTERRUPT_DEQUE.as_mut().unwrap().push_back(interrupt).unwrap();
+                    }
+                    RECEIVED_HARDWARE_INTERRUPT_BITFLAGS.store(interrupt_received_bitflags | flag, Ordering::Relaxed);
                 }
             }
         }
 
+        let pic = unsafe {
+            PIC.as_mut().unwrap()
+        };
+
         if MASTER_PIC_INTERRUPT_OFFSET <= interrupt_number && interrupt_number < MASTER_PIC_SPURIOUS_INTERRUPT {
-            unsafe {
-                PIC.as_mut_ptr().as_mut().unwrap().send_eoi_to_master();
-            }
+            pic.send_eoi_to_master();
         } else if SLAVE_PIC_INTERRUPT_OFFSET <= interrupt_number && interrupt_number < SLAVE_PIC_SPURIOUS_INTERRUPT {
-            unsafe {
-                PIC.as_mut_ptr().as_mut().unwrap().send_eoi_to_slave();
-                PIC.as_mut_ptr().as_mut().unwrap().send_eoi_to_master();
-            }
+            pic.send_eoi_to_slave();
+            pic.send_eoi_to_master();
         }
 
         if interrupt_number == MASTER_PIC_SPURIOUS_INTERRUPT {
-            let _ = writeln!(terminal, "Spurious interrupt form master PIC");
+            let _ = writeln!(terminal, "Spurious interrupt from master PIC");
 
-            unsafe {
-                MASTER_PIC_SPURIOUS_INTERRUPT_COUNT += 1;
-            }
+            MASTER_PIC_SPURIOUS_INTERRUPT_COUNT.fetch_add(1, Ordering::Relaxed);
         }
 
         if interrupt_number == SLAVE_PIC_SPURIOUS_INTERRUPT {
-            let _ = writeln!(terminal, "Spurious interrupt form slave PIC");
+            let _ = writeln!(terminal, "Spurious interrupt from slave PIC");
 
-            unsafe {
-                SLAVE_PIC_SPURIOUS_INTERRUPT_COUNT += 1;
-                PIC.as_mut_ptr().as_mut().unwrap().send_eoi_to_master();
-            }
+            SLAVE_PIC_SPURIOUS_INTERRUPT_COUNT.fetch_add(1, Ordering::Relaxed);
+
+            pic.send_eoi_to_master();
         }
     }
 }
