@@ -271,7 +271,7 @@ extern "C" fn rust_interrupt_handler(interrupt_number: u32) {
         crate::vga_text::new_vga_text_mode_unsafe()
     };
 
-    let mut terminal = crate::terminal::Terminal::new(text_mode);
+    let mut terminal = crate::terminal::Terminal::new(text_mode, false);
 
     let exception = Exception::from_interrupt_number(interrupt_number);
 

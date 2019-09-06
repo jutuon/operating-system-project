@@ -24,7 +24,7 @@ extern "C" fn kernel_main() -> ! {
     let mut vga_handle = vga_text::new_vga_text_mode().unwrap();
     vga_handle.clear_screen(vga::driver::text::VgaChar::empty());
 
-    let mut terminal = Terminal::new(vga_handle);
+    let mut terminal = Terminal::new(vga_handle, true);
 
     let _ = writeln!(terminal, "Hello world");
 
@@ -177,7 +177,7 @@ fn panic(info: &PanicInfo) -> ! {
         vga_text::new_vga_text_mode_unsafe()
     };
 
-    let mut terminal = Terminal::new(text_mode);
+    let mut terminal = Terminal::new(text_mode, false);
 
     let _ = writeln!(terminal, "{:#?}", info);
 
