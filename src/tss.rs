@@ -4,12 +4,12 @@ use x86::task::load_tr;
 
 #[repr(transparent)]
 pub struct TSS {
-    start: TaskStateSegment,
+    _start: TaskStateSegment,
 }
 
 #[used]
 pub static TSS_DATA: TSS = TSS {
-    start: TaskStateSegment::new()
+    _start: TaskStateSegment::new()
 };
 
 

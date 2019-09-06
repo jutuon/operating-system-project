@@ -1,7 +1,5 @@
 
 use core::sync::atomic::{AtomicBool, Ordering};
-use core::slice;
-use core::fmt;
 
 static VGA_HANDLE_CREATED: AtomicBool = AtomicBool::new(false);
 

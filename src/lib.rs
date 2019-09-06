@@ -1,7 +1,6 @@
 #![feature(const_fn)]
 
 #![no_std]
-#![no_main]
 
 pub mod vga_text;
 pub mod terminal;
@@ -94,7 +93,7 @@ extern "C" fn kernel_main(eax: u32, ebx: u32) -> ! {
         x86::controlregs::cr0_write(x86::controlregs::Cr0::CR0_EMULATE_COPROCESSOR | x86::controlregs::Cr0::CR0_WRITE_PROTECT | x86::controlregs::Cr0::CR0_ENABLE_PAGING | x86::controlregs::cr0());
     }
 
-    let task = KernelTask::load();
+    let _task = KernelTask::load();
 
     let mut input_module = match self::input::Input::init() {
         Ok(input) => {

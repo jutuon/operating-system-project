@@ -86,8 +86,6 @@ impl PortIO for PicPortIO {
 
 pub struct IDTHandler;
 
-use core::mem::MaybeUninit;
-
 const MASTER_PIC_INTERRUPT_OFFSET: u8 = 32;
 const SLAVE_PIC_INTERRUPT_OFFSET: u8 = MASTER_PIC_INTERRUPT_OFFSET + 8;
 

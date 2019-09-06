@@ -4,9 +4,9 @@ use crate::input::KeyPress;
 
 use arrayvec::ArrayString;
 
-use crate::vga_text::{self, VgaTextMode};
+use crate::vga_text::{VgaTextMode};
 
-use vga::driver::text::{ VGA_TEXT_WIDTH, VGA_TEXT_HEIGHT, VgaChar, Colour, AttributeBit7 };
+use vga::driver::text::{ VGA_TEXT_WIDTH, VGA_TEXT_HEIGHT, VgaChar, Colour };
 
 const COMMAND_HISTORY_LAST_LINE_INDEX: usize = VGA_TEXT_HEIGHT - 2;
 const COMMAND_HISTORY_LINE_COUNT: usize = VGA_TEXT_HEIGHT - 1;
@@ -47,7 +47,7 @@ pub struct Terminal {
 
 
 impl Terminal {
-    pub fn new(mut text_mode: VgaTextMode, init_cmd: bool) -> Self {
+    pub fn new(text_mode: VgaTextMode, init_cmd: bool) -> Self {
         //text_mode.attribute_bit_7(AttributeBit7::Blink);
         let mut terminal = Self {
             text_mode,
