@@ -118,11 +118,13 @@ impl CommandLine {
     }
 
     fn draw_command_line(&mut self, text_mode: &mut VgaTextMode) {
+        let cmd_len = self.command.chars().count();
+
         for (i, c) in self.command.chars().enumerate() {
             write_char_to_vga_text_buffer(text_mode, i, COMMAND_LINE_INDEX_Y, c, false);
 
-            if i == self.command.len() - 1 {
-                write_char_to_vga_text_buffer(text_mode, self.command.len(), COMMAND_LINE_INDEX_Y, '_', true);
+            if i == cmd_len - 1 {
+                write_char_to_vga_text_buffer(text_mode, cmd_len, COMMAND_LINE_INDEX_Y, '_', true);
             }
         }
     }
