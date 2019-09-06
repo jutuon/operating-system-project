@@ -1,4 +1,7 @@
 
+use core::sync::atomic::{AtomicUsize, Ordering};
+use core::num::Wrapping;
+
 use x86::dtables::*;
 use x86::segmentation::*;
 
@@ -95,6 +98,7 @@ static mut RECEIVED_HARDWARE_INTERRUPT_BITFLAGS: u32 = 0;
 static mut INTERRUPT_DEQUE: MaybeUninit<ArrayDeque<[HardwareInterrupt; 32], Saturating>> = MaybeUninit::uninit();
 
 static mut PIC: MaybeUninit<Pic<PicPortIO>> = MaybeUninit::uninit();
+pub static TIME_MILLISECONDS: AtomicUsize = AtomicUsize::new(0);
 
 impl IDTHandler {
     pub fn new() -> Self {
@@ -123,8 +127,7 @@ impl IDTHandler {
 
         // Dedicate last interrupt line for spurious interrupts.
         const LAST_IRQ_LINE: u8 = 0b1000_0000;
-        const TIMER_IRQ_LINE: u8 = 0b0000_0001;
-        pic.set_master_mask(LAST_IRQ_LINE | TIMER_IRQ_LINE);
+        pic.set_master_mask(LAST_IRQ_LINE);
         pic.set_slave_mask(LAST_IRQ_LINE);
 
         unsafe {
@@ -282,6 +285,11 @@ extern "C" fn rust_interrupt_handler(interrupt_number: u32) {
         let hardware_interrupt = HardwareInterrupt::from_interrupt_number(interrupt_number);
 
         if let Ok(interrupt) = hardware_interrupt {
+            if let HardwareInterrupt::Timer = interrupt {
+                let new_time: Wrapping<usize> = Wrapping(TIME_MILLISECONDS.load(Ordering::Relaxed)) + Wrapping(55usize);
+                TIME_MILLISECONDS.store(new_time.0, Ordering::Relaxed);
+            }
+
             unsafe {
                 let flag = 1 << interrupt as u8;
                 if flag & RECEIVED_HARDWARE_INTERRUPT_BITFLAGS == 0 {
