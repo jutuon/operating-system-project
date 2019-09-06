@@ -18,6 +18,11 @@ use self::tss::KernelTask;
 
 use core::fmt::Write;
 
+extern "C" {
+    #[allow(improper_ctypes)]
+    pub static stack_start_plus_4_bytes: ();
+}
+
 #[no_mangle]
 extern "C" fn kernel_main(eax: u32, ebx: u32) -> ! {
     let mut vga_handle = vga_text::new_vga_text_mode().unwrap();
@@ -26,6 +31,23 @@ extern "C" fn kernel_main(eax: u32, ebx: u32) -> ! {
     let mut terminal = Terminal::new(vga_handle, true);
 
     let _ = writeln!(terminal, "Hello world");
+
+    let stack_start = unsafe {
+        &stack_start_plus_4_bytes as *const _ as usize - 4
+    };
+
+    if stack_start % 4 != 0 {
+        panic!("Stack is unaligned");
+    }
+
+    unsafe {
+        let stack_index_0 = *(stack_start as *const usize);
+        if stack_index_0 != 0 {
+            panic!("Unknown stack index 0 value {}", stack_index_0);
+        }
+    }
+
+    let _ = writeln!(terminal, "Stack start address: {:#x}", stack_start);
 
     if eax != 0x36d76289 {
         panic!("Boot loader was not Multiboot2-compliant, eax: {}", eax);
