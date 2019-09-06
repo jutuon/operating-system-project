@@ -58,6 +58,7 @@ seq!(N in 18..=255 {
     ];
 });
 
+#[repr(transparent)]
 pub struct IDT {
     entries: [Descriptor; 256],
 }

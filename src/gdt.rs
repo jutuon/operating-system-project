@@ -2,6 +2,7 @@
 use x86::segmentation::*;
 use x86::dtables::*;
 
+#[repr(C, packed)]
 pub struct GDT {
     _null: Descriptor,
     code: Descriptor,
