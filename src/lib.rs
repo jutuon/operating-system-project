@@ -49,6 +49,24 @@ extern "C" fn kernel_main(eax: u32, ebx: u32) -> ! {
 
     let _ = writeln!(terminal, "Stack start address: {:#x}", stack_start);
 
+    // Check eflags values related to interrupt handling.
+
+    let eflags = unsafe {
+        x86::bits32::eflags::read()
+    };
+
+    if !eflags.contains(x86::bits32::eflags::EFlags::FLAGS_IOPL0) {
+        panic!("EFlags::FLAGS_IOPL0 is missing");
+    }
+
+    if eflags.contains(x86::bits32::eflags::EFlags::FLAGS_VM) {
+        panic!("EFlags::FLAGS_VM is set");
+    }
+
+    if eflags.contains(x86::bits32::eflags::EFlags::FLAGS_NT) {
+        panic!("EFlags::FLAGS_NT is set");
+    }
+
     if eax != 0x36d76289 {
         panic!("Boot loader was not Multiboot2-compliant, eax: {}", eax);
     }
