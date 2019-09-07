@@ -61,6 +61,10 @@ seq!(N in 18..=255 {
     ];
 });
 
+pub fn time_in_milliseconds() -> usize {
+    TIME_MILLISECONDS.load(Ordering::Relaxed)
+}
+
 #[repr(transparent)]
 pub struct IDT {
     entries: [Descriptor; 256],
