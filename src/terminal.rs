@@ -2,7 +2,7 @@
 
 use crate::input::KeyPress;
 
-use arrayvec::ArrayString;
+use arrayvec::{ArrayString, ArrayVec};
 
 use crate::vga_text::{VgaTextMode};
 
@@ -14,9 +14,6 @@ const COMMAND_LINE_INDEX_Y: usize = VGA_TEXT_HEIGHT - 1;
 const COMMAND_LENGTH: usize = VGA_TEXT_WIDTH - 1;
 
 fn write_char_to_vga_text_buffer(text_mode: &mut VgaTextMode, x: usize, y: usize, c: char, blink: bool) {
-    use core::fmt::Write;
-    let mut debug_line = DebugLine { text_mode, position: 0 };
-    write!(debug_line, "--- x: {:5}, y: {:5} ---", x, y).unwrap();
     let vga_char = VgaChar::new(c).blink(blink).foreground_color(Colour::White);
     text_mode.lines_mut().nth(y).unwrap().iter_mut().nth(x).unwrap().write(vga_char);
 }
@@ -24,6 +21,12 @@ fn write_char_to_vga_text_buffer(text_mode: &mut VgaTextMode, x: usize, y: usize
 pub struct DebugLine<'a> {
     text_mode: &'a mut VgaTextMode,
     position: usize,
+}
+
+impl <'a> DebugLine<'a> {
+    pub fn new(text_mode: &'a mut VgaTextMode) -> Self {
+        Self { text_mode, position: 0 }
+    }
 }
 
 impl core::fmt::Write for DebugLine<'_> {
@@ -48,7 +51,6 @@ pub struct Terminal {
 
 impl Terminal {
     pub fn new(text_mode: VgaTextMode, init_cmd: bool) -> Self {
-        //text_mode.attribute_bit_7(AttributeBit7::Blink);
         let mut terminal = Self {
             text_mode,
             history: CommandHistory::new(),
@@ -56,24 +58,27 @@ impl Terminal {
         };
 
         if init_cmd {
+            terminal.command_line.clear_line(&mut terminal.text_mode);
             terminal.command_line.add_char(&mut terminal.text_mode, '>');
+            terminal.text_mode.set_cursor_height(13, 14);
+            terminal.text_mode.set_cursor_visibility(true);
         }
 
         terminal
     }
 
-    pub fn update_command_line(&mut self, key: KeyPress) {
-        self.command_line.update_command_line(key, &mut self.text_mode, &mut self.history);
+    pub fn update_command_line<'a>(&mut self, key: KeyPress, cmd_store: &'a mut CommandStore) -> Option<ParsedCommand<'a>> {
+        self.command_line.update_command_line(key, &mut self.text_mode, &mut self.history, cmd_store)
     }
 
-    pub fn new_command_line(&mut self) {
-        self.command_line.new_command_line(&mut self.text_mode, &mut self.history);
+    pub fn new_command_line(&mut self, cmd_store: &mut CommandStore) {
+        self.command_line.new_command_line(&mut self.text_mode, &mut self.history, cmd_store);
     }
 }
 
 impl core::fmt::Write for Terminal {
     fn write_str(&mut self, s: &str) -> core::fmt::Result {
-        self.history.add_text(&mut self.text_mode, s);
+        self.history.add_text(&mut self.text_mode, s.chars());
         Ok(())
     }
 }
@@ -117,68 +122,89 @@ impl CommandHistory {
         }
     }
 
-    fn add_text(&mut self, text_mode: &mut VgaTextMode, text: &str) {
-        for character in text.chars() {
+    fn add_text(&mut self, text_mode: &mut VgaTextMode, chars: impl Iterator<Item=char>) {
+        for character in chars {
             self.write_char(text_mode, character);
         }
     }
 }
 
-#[derive(Debug)]
 pub struct CommandLine {
-    command: ArrayString<[u8; COMMAND_LENGTH]>,
+    editable_command: ArrayVec<[char; COMMAND_LENGTH]>,
     position: usize,
 }
 
 impl CommandLine {
     fn new() -> Self {
         Self {
-            command: ArrayString::new(),
+            editable_command: ArrayVec::new(),
             position: 0,
         }
     }
 
     fn draw_command_line(&mut self, text_mode: &mut VgaTextMode) {
-        let cmd_len = self.command.chars().count();
-
-        for (i, c) in self.command.chars().enumerate() {
+        for (i, &c) in self.editable_command.iter().enumerate() {
             write_char_to_vga_text_buffer(text_mode, i, COMMAND_LINE_INDEX_Y, c, false);
-
-            if i == cmd_len - 1 {
-                write_char_to_vga_text_buffer(text_mode, cmd_len, COMMAND_LINE_INDEX_Y, '_', true);
-            }
         }
+
+        let cmd_len = self.editable_command.iter().count();
+
+        // Clear the end of the command line. Character deleting support requires this.
+        for mut c in text_mode.lines_mut().nth(COMMAND_LINE_INDEX_Y).unwrap().iter_mut().skip(cmd_len) {
+            c.write(Self::whitespace_character());
+        }
+
+        self.update_cursor_position(text_mode);
     }
 
     fn add_char(&mut self, text_mode: &mut VgaTextMode, c: char) {
-        if self.position < VGA_TEXT_WIDTH - 1 {
-            self.command.push(c);
+        if let Ok(()) = self.editable_command.try_insert(self.position, c) {
             self.position += 1;
             self.draw_command_line(text_mode);
         }
     }
 
-    pub fn update_command_line(&mut self, key: KeyPress, text_mode: &mut VgaTextMode, command_history: &mut CommandHistory) {
+    pub fn update_command_line<'a>(&mut self, key: KeyPress, text_mode: &mut VgaTextMode, command_history: &mut CommandHistory, cmd_store: &'a mut CommandStore) -> Option<ParsedCommand<'a>> {
         match key {
-            KeyPress::Unicode('n') | KeyPress::Enter => self.new_command_line(text_mode, command_history),
+            KeyPress::Enter => {
+                self.new_command_line(text_mode, command_history, cmd_store);
+                return Some(ParsedCommand::parse(&cmd_store.cmd));
+            }
             KeyPress::Unicode(c) => {
                 if c.is_ascii() {
                     self.add_char(text_mode, c);
                 }
             },
-            KeyPress::Left => (),
-            KeyPress::Right => (),
-            KeyPress::Backspace => (),
+            KeyPress::Left => {
+                if self.position > 1 {
+                    self.position -= 1;
+                }
+                self.update_cursor_position(text_mode);
+            },
+            KeyPress::Right => {
+                if self.position < self.editable_command.len() {
+                    self.position += 1;
+                }
+                self.update_cursor_position(text_mode);
+            },
+            KeyPress::Backspace => {
+                if self.editable_command.len() > 1 && self.position > 1 {
+                    self.editable_command.remove(self.position - 1);
+                    self.position -= 1;
+                    self.draw_command_line(text_mode);
+                }
+            },
             _ => (),
         }
+        None
     }
 
-    pub fn new_command_line(&mut self, text_mode: &mut VgaTextMode, command_history: &mut CommandHistory) {
+    pub fn new_command_line(&mut self, text_mode: &mut VgaTextMode, command_history: &mut CommandHistory, cmd_store: &mut CommandStore) {
+        command_history.add_text(text_mode, self.editable_command.iter().copied());
+        command_history.add_text(text_mode, "\n".chars());
+        cmd_store.replace_cmd(self.editable_command.iter().copied());
 
-        command_history.add_text(text_mode, &self.command);
-        command_history.add_text(text_mode, "\n");
-
-        self.command.clear();
+        self.editable_command.clear();
         self.position = 0;
 
         self.clear_line(text_mode);
@@ -187,6 +213,53 @@ impl CommandLine {
     }
 
     pub fn clear_line(&self, text_mode: &mut VgaTextMode) {
-        text_mode.lines_mut().nth(COMMAND_LINE_INDEX_Y).expect("new_command_line, line not found").clear_with(VgaChar::empty());
+        text_mode.lines_mut().nth(COMMAND_LINE_INDEX_Y).expect("new_command_line, line not found").clear_with(Self::whitespace_character());
+    }
+
+    pub fn whitespace_character() -> VgaChar {
+        VgaChar::new(' ').foreground_color(Colour::White)
+    }
+
+    pub fn update_cursor_position(&self, text_mode: &mut VgaTextMode) {
+        text_mode.set_cursor_character_index(self.position + COMMAND_LINE_INDEX_Y * VGA_TEXT_WIDTH);
+    }
+}
+
+pub struct CommandStore {
+    pub cmd: ArrayString<[u8; COMMAND_LENGTH]>,
+}
+
+impl CommandStore {
+    pub fn new() -> Self {
+        Self {
+            cmd: ArrayString::new(),
+        }
+    }
+
+    fn replace_cmd(&mut self, chars: impl Iterator<Item=char>) {
+        self.cmd.clear();
+        for character in chars {
+            self.cmd.try_push(character).expect("Multibyte characters are not supported currently.");
+        }
+    }
+}
+
+
+pub struct ParsedCommand<'a> {
+    pub name: &'a str,
+    pub arguments: core::str::SplitWhitespace<'a>,
+}
+
+impl <'a> ParsedCommand<'a> {
+    pub fn parse(cmd_line: &'a str) -> Self {
+        let cmd = cmd_line[1..].trim();
+
+        let mut iter = cmd.split_whitespace();
+        let name = iter.next().unwrap_or_default();
+
+        Self {
+            name,
+            arguments: iter,
+        }
     }
 }

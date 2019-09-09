@@ -107,6 +107,8 @@ extern "C" fn kernel_main(eax: u32, ebx: u32) -> ! {
 
     idt_handler.enable_interrupts();
 
+    let mut cmd_store = terminal::CommandStore::new();
+
     loop {
         while let Some(hardware_interrupt) = idt_handler.handle_interrupt() {
             use self::idt::HardwareInterrupt;
@@ -116,7 +118,24 @@ extern "C" fn kernel_main(eax: u32, ebx: u32) -> ! {
                         let key = input.handle_keyboard_interrupt();
 
                         match key {
-                            Ok(Some(k)) => terminal.update_command_line(k),
+                            Ok(Some(k)) => {
+                                if let Some(cmd) = terminal.update_command_line(k, &mut cmd_store) {
+                                    match cmd.name {
+                                        "echo" => {
+                                            for arg in cmd.arguments {
+                                                write!(terminal, "{} ", arg).unwrap();
+                                            }
+                                            writeln!(terminal, "").unwrap();
+                                        }
+                                        "reboot" => {
+                                            input.reboot_computer()
+                                        }
+                                        "" => (),
+                                        unknown_cmd => writeln!(terminal, "Unknown command '{}'", unknown_cmd).unwrap(),
+                                    }
+                                    writeln!(terminal, "").unwrap();
+                                }
+                            }
                             Ok(None) => (),
                             Err(e) => {
                                 let _ = writeln!(terminal, "Keyboard error: {:?}", e);

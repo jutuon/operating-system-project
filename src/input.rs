@@ -5,7 +5,7 @@
 use pc_ps2_controller::{
     controller::{
         io::{PortIO, DATA_PORT_RAW, STATUS_REGISTER_RAW, COMMAND_REGISTER_RAW},
-        driver::{EnabledDevices, InitController, DeviceData, ReadData, marker::InterruptsEnabled, InterfaceError, Testing, EnableDevice},
+        driver::{EnabledDevices, InitController, DeviceData, ReadData, marker::InterruptsEnabled, InterfaceError, Testing, EnableDevice, ResetCPU},
     },
     device::keyboard::driver::{Keyboard, KeyboardError, KeyboardEvent},
     device::command_queue::Command,
@@ -125,6 +125,10 @@ impl Input {
         } else {
             None
         }
+    }
+
+    pub fn reboot_computer(&mut self) {
+        self.ps2_controller.reset_cpu();
     }
 }
 
