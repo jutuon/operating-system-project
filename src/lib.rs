@@ -41,8 +41,8 @@ extern "C" fn kernel_main(eax: u32, ebx: u32) -> ! {
 
     unsafe {
         let stack_index_0 = *(stack_start as *const usize);
-        if stack_index_0 != 0 {
-            panic!("Unknown stack index 0 value {}", stack_index_0);
+        if stack_index_0 != usize::max_value() {
+            panic!("Unknown stack index 0 value {:#x}, expected: {:#x}", stack_index_0, usize::max_value());
         }
     }
 

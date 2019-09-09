@@ -16,6 +16,10 @@ _start:
     sub $4, %esp
     mov $0, %ebp
 
+    # Write stack index 0 test value. Rust code will check this.
+    mov $0xFFFFFFFF, %ecx
+    mov %ecx, (%esp)
+
     # System V ABI - Intel386 requirement: clear direction flag from EFLAGS.
     cld
 
