@@ -120,7 +120,7 @@ impl Input {
             }
         };
 
-        if let KeyState::Up = key_event.state {
+        if let KeyState::Down = key_event.state {
             Some(converted)
         } else {
             None
