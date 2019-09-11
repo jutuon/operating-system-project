@@ -194,6 +194,20 @@ impl CommandLine {
                     self.draw_command_line(text_mode);
                 }
             },
+            KeyPress::Delete => {
+                if self.editable_command.len() > self.position && self.position > 0 {
+                    self.editable_command.remove(self.position);
+                    self.draw_command_line(text_mode);
+                }
+            }
+            KeyPress::Home => {
+                self.position = 1;
+                self.update_cursor_position(text_mode);
+            }
+            KeyPress::End => {
+                self.position = self.editable_command.len();
+                self.update_cursor_position(text_mode);
+            }
             _ => (),
         }
         None

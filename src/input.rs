@@ -112,6 +112,9 @@ impl Input {
             KeyCode::Enter => KeyPress::Enter,
             KeyCode::Backspace => KeyPress::Backspace,
             KeyCode::Escape => KeyPress::Escape,
+            KeyCode::Delete => KeyPress::Delete,
+            KeyCode::Home => KeyPress::Home,
+            KeyCode::End => KeyPress::End,
             _ => {
                 return match self.keyevent_decoder.process_keyevent(key_event) {
                     Some(DecodedKey::Unicode(c)) => Some(KeyPress::Unicode(c)),
@@ -140,5 +143,8 @@ pub enum KeyPress {
     Enter,
     Backspace,
     Escape,
+    Delete,
+    Home,
+    End,
     Unicode(char)
 }
